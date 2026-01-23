@@ -1,0 +1,168 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+html,
+body {
+  max-width: 100vw;
+  height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+@media (prefers-color-scheme: dark) {
+  html {
+    color-scheme: dark;
+  }
+}
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+}
+
+:root {
+  /* Natural-modern pastel palette */
+  --pastel-mint: #b6eadc;
+  --pastel-seafoam: #cde9d6;
+  --pastel-lime: #eafec8;
+  --pastel-beige: #f5f1e6;
+  --pastel-blush: #ffe8e1;
+  --pastel-pebble: #dcdcdc;
+  --pastel-peach: #ffe5d4;
+
+  --radius: 0.625rem;
+
+  /* Base colors */
+  --background: #fcfcfb; /* light beige */
+  --foreground: #2e2e2e; /* deep neutral gray */
+
+  --card: #ffffff; /* true white card */
+  --card-foreground: #2e2e2e;
+
+  --popover: #f1f4f3;
+  --popover-foreground: #2e2e2e;
+
+  --primary: #a7ead7; /* muted mint */
+  --primary-foreground: #1e3d3a;
+
+  --secondary: #f0ede5; /* warm beige */
+  --secondary-foreground: #2e2e2e;
+
+  --muted: #ececec;
+  --muted-foreground: #666;
+
+  --accent: #ffe5d4; /* soft peach */
+  --accent-foreground: #2e2e2e;
+
+  --destructive: #ffd6d6; /* soft red */
+  --border: #e1e1e1;
+  --input: #f0f0f0;
+  --ring: #a7ead7;
+
+  --chart-1: #a7ead7;
+  --chart-2: #fce38a;
+  --chart-3: #ffe8e1;
+  --chart-4: #dcdcdc;
+  --chart-5: #c5d7bd;
+
+  --sidebar: #f9f9f8;
+  --sidebar-foreground: #2e2e2e;
+  --sidebar-primary: #e8f2ef;
+  --sidebar-primary-foreground: #2e2e2e;
+  --sidebar-accent: #ffd6d6;
+  --sidebar-accent-foreground: #2e2e2e;
+  --sidebar-border: #e1e1e1;
+  --sidebar-ring: #a7ead7;
+}
+
+.dark {
+  --background: #1f1f1f; /* dark neutral base */
+  --foreground: #f4f4f4;
+
+  --card: #2a2a2a;
+  --card-foreground: #f4f4f4;
+
+  --popover: #333;
+  --popover-foreground: #f4f4f4;
+
+  --primary: #95e1d3;
+  --primary-foreground: #1a2d2b;
+
+  --secondary: #3a3a3a;
+  --secondary-foreground: #f4f4f4;
+
+  --muted: #2e2e2e;
+  --muted-foreground: #aaa;
+
+  --accent: #ffcabd;
+  --accent-foreground: #1f1f1f;
+
+  --destructive: #ffb3b3;
+  --border: #444;
+  --input: #333;
+  --ring: #95e1d3;
+
+  --chart-1: #95e1d3;
+  --chart-2: #fce38a;
+  --chart-3: #ffe8e1;
+  --chart-4: #c5d7bd;
+  --chart-5: #dcdcdc;
+
+  --sidebar: #2a2a2a;
+  --sidebar-foreground: #f4f4f4;
+  --sidebar-primary: #3a3a3a;
+  --sidebar-primary-foreground: #f4f4f4;
+  --sidebar-accent: #95e1d3;
+  --sidebar-accent-foreground: #1a2d2b;
+  --sidebar-border: #444;
+  --sidebar-ring: #95e1d3;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
