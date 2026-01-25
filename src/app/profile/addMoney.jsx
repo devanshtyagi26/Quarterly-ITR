@@ -24,8 +24,9 @@ import {
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import axios from "axios";
 import { toast } from "sonner";
+
+// Import your helper functions
 import {
   formatDate,
   handleInvoiceNo,
@@ -35,6 +36,9 @@ import {
   handleGstRateChange,
   handleDateChange,
 } from "@/lib/addMoney";
+
+// IMPORT THE SCHEMA HERE (or define it locally as shown below)
+import { fullSchema } from "@/lib/schema/sendMoneyValidation";
 
 function AddMoney({ business }) {
   // State for form values
@@ -54,13 +58,12 @@ function AddMoney({ business }) {
   const [value, setValue] = useState("");
   const [open, setOpen] = useState(false);
 
-  // Check if Taxable Value is valid to enable GST Rate
+  // Derived state for UI disabling logic
   const isTaxableValueValid =
     formData.taxableValue !== "" &&
     !isNaN(formData.taxableValue) &&
     parseFloat(formData.taxableValue) > 0;
 
-  // Check if GST Rate is filled to enable Tax fields
   const isRateValid = formData.gstRate !== "" && !isNaN(formData.gstRate);
 
   const clearForm = () => {
@@ -78,62 +81,63 @@ function AddMoney({ business }) {
     setValue("");
   };
 
+  // --- UPDATED SEND DATA FUNCTION ---
   const sendData = (e) => {
     e.preventDefault();
 
-    // 1. Centralized Validation Rules
-    const errors = [
-      { check: !business, msg: "No business selected." },
-      { check: !date, msg: "Please enter a valid invoice date." },
-      { check: !formData.invoiceNo, msg: "Please enter an invoice number." },
-      {
-        check: !isTaxableValueValid,
-        msg: "Please enter a valid taxable value.",
-      },
-      { check: !isRateValid, msg: "Please enter a valid GST rate." },
-      {
-        check: formData.cgst === "" || isNaN(formData.cgst),
-        msg: "Please enter a valid CGST amount.",
-      },
-      {
-        check: formData.sgst === "" || isNaN(formData.sgst),
-        msg: "Please enter a valid SGST amount.",
-      },
-      {
-        check: formData.billValue === "" || isNaN(formData.billValue),
-        msg: "Please enter a valid bill value.",
-      },
-      { check: !formData.year, msg: "Year is not set correctly." },
-      { check: !formData.quarter, msg: "Quarter is not set correctly." },
-    ];
-
-    // 2. Iterate and Stop on First Error
-    for (const { check, msg } of errors) {
-      if (check) {
-        toast.error(msg);
-        return;
-      }
-    }
-
-    // 3. Construct Data (Safe Parsing)
-    // Using Number() or parseFloat() || 0 prevents NaN issues
-    const dataToSend = {
-      businessName: business.businessName,
-      gstNo: business.gstNo,
-      invoiceDate: formatDate(date),
+    // 1. Construct the Payload
+    // We construct the object strictly as expected by the Zod Schema
+    const rawData = {
+      businessName: business?.businessName || "",
+      gstNo: business?.gstNo || "",
+      invoiceDate: formatDate(date), // Helper returns "" if date is null
       invoiceNo: formData.invoiceNo,
-      taxableValue: Number(formData.taxableValue) || 0,
-      gstRate: Number(formData.gstRate) || 0,
-      cgst: Number(formData.cgst) || 0,
-      sgst: Number(formData.sgst) || 0,
-      totalBill: Number(formData.billValue) || 0,
+      // Coercion happens in Zod, but passing raw strings is fine
+      taxableValue: formData.taxableValue,
+      gstRate: formData.gstRate,
+      cgst: formData.cgst,
+      sgst: formData.sgst,
+      totalBill: formData.billValue,
       year: formData.year,
       quarter: formData.quarter,
     };
+    // 2. Validate with Zod
+    const result = fullSchema.safeParse(rawData);
 
-    console.log("Data to send:", dataToSend);
-    // Implement API call here
+    // 3. Handle Validation Errors
+    if (!result.success) {
+      // Get the first error message
+      const firstError = result.error.issues[0].message;
+
+      // Optional: Log full errors for debugging
+      toast.error(`Validation Error: ${firstError}`);
+      return;
+    }
+
+    // 4. Success!
+    // result.data contains the clean, number-coerced data ready for the API
+    const dataToSend = result.data;
+
+    const calculatedTotal =
+      dataToSend.taxableValue + dataToSend.cgst + dataToSend.sgst;
+    const difference = Math.abs(calculatedTotal - dataToSend.totalBill);
+
+    if (difference > 1.0) {
+      // Show Yellow Warning
+      toast.warning("Note: Total Bill does not match Taxable + Taxes", {
+        description: "Data is being saved anyway.",
+        duration: 5000, // Stay visible longer
+      });
+    }
+
+    console.log("Validated Data to Send:", dataToSend);
+
+    // API Call Example:
+    // axios.post('/api/invoice', dataToSend)
+    //   .then(() => toast.success("Invoice added successfully!"))
+    //   .catch(err => toast.error("Failed to add invoice"));
   };
+
   return (
     <FieldSet className="w-full max-w-sm">
       <FieldLegend>Add Transaction Details</FieldLegend>
@@ -150,7 +154,7 @@ function AddMoney({ business }) {
                 id="invoiceDate"
                 value={value}
                 placeholder="DD-MM-YYYY"
-                maxLength={10} // 10 chars = 8 digits + 2 dashes
+                maxLength={10}
                 onChange={(e) =>
                   handleDateChange(
                     e,
@@ -163,7 +167,6 @@ function AddMoney({ business }) {
                 }
                 required
                 onKeyDown={(e) => {
-                  // Open calendar on arrow down
                   if (e.key === "ArrowDown") {
                     e.preventDefault();
                     setOpen(true);
@@ -174,20 +177,16 @@ function AddMoney({ business }) {
                 <Popover open={open} onOpenChange={setOpen}>
                   <PopoverTrigger asChild>
                     <InputGroupButton
-                      id="date-picker"
                       variant="ghost"
                       size="icon-xs"
                       aria-label="Select date"
                     >
                       <CalendarIcon />
-                      <span className="sr-only">Select date</span>
                     </InputGroupButton>
                   </PopoverTrigger>
                   <PopoverContent
                     className="w-auto overflow-hidden p-0"
                     align="end"
-                    alignOffset={-8}
-                    sideOffset={10}
                   >
                     <Calendar
                       mode="single"
@@ -197,7 +196,6 @@ function AddMoney({ business }) {
                       onSelect={(selectedDate) => {
                         if (selectedDate) {
                           setDate(selectedDate);
-                          // Update input text with the new format
                           setValue(formatDate(selectedDate));
                           setOpen(false);
                         }
@@ -208,18 +206,18 @@ function AddMoney({ business }) {
               </InputGroupAddon>
             </InputGroup>
           </Field>
+
           <Field>
             <FieldLabel htmlFor="invoiceNo">Invoice Number</FieldLabel>
             <Input
               id="invoiceNo"
-              type="text"
               placeholder="INV-00123"
-              onChange={(e) => handleInvoiceNo(e, setFormData)}
               value={formData.invoiceNo}
-              required
+              onChange={(e) => handleInvoiceNo(e, setFormData)}
             />
           </Field>
         </div>
+
         <div className="grid grid-cols-2 gap-4">
           <Field>
             <FieldLabel htmlFor="taxableValue">Taxable Value</FieldLabel>
@@ -227,10 +225,8 @@ function AddMoney({ business }) {
               id="taxableValue"
               type="number"
               min="0"
-              placeholder="0.00"
               value={formData.taxableValue}
               onChange={(e) => handleTaxableValueChange(e, setFormData)}
-              required
             />
           </Field>
 
@@ -240,14 +236,12 @@ function AddMoney({ business }) {
               id="gstRate"
               type="number"
               min="0"
-              placeholder="18"
               value={formData.gstRate}
               onChange={(e) => handleGstRateChange(e, setFormData)}
-              disabled={!isTaxableValueValid} // Condition 1: Disabled until Taxable Value is filled
+              disabled={!isTaxableValueValid}
               className={
                 !isTaxableValueValid ? "opacity-50 cursor-not-allowed" : ""
               }
-              required
             />
           </Field>
         </div>
@@ -260,10 +254,9 @@ function AddMoney({ business }) {
               id="cgst"
               type="number"
               min="0"
-              placeholder="0.00"
               value={formData.cgst}
               onChange={(e) => handleTaxManualChange(e, setFormData)}
-              disabled={!isRateValid} // Condition 2: Disabled until Rate is filled
+              disabled={!isRateValid}
             />
           </Field>
 
@@ -273,13 +266,13 @@ function AddMoney({ business }) {
               id="sgst"
               type="number"
               min="0"
-              placeholder="0.00"
               value={formData.sgst}
               onChange={(e) => handleTaxManualChange(e, setFormData)}
-              disabled={!isRateValid} // Condition 2: Disabled until Rate is filled
+              disabled={!isRateValid}
             />
           </Field>
         </div>
+
         <div className="grid grid-cols-2 gap-4 ml-[50%]">
           <Field>
             <FieldLabel htmlFor="billValue">Bill Value</FieldLabel>
@@ -287,13 +280,13 @@ function AddMoney({ business }) {
               id="billValue"
               type="number"
               min="0"
-              placeholder="0.00"
               value={formData.billValue}
               onChange={(e) => handleBillValueChange(e, setFormData)}
-              disabled={!isRateValid} // Condition 2: Disabled until Rate is filled
+              disabled={!isRateValid}
             />
           </Field>
         </div>
+
         <div className="grid grid-cols-2 gap-4 ml-[50%]">
           <Button
             type="button"
