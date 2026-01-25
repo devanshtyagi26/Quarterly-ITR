@@ -15,27 +15,13 @@ import {
 
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Search, ChevronDownIcon, MoreHorizontal } from "lucide-react";
-import {
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import BusinessForm from "./chooseBusiness";
+import AddNewBusiness from "./addNewBusiness";
 
 export default function ProfilePage() {
   const router = useRouter();
-  const [data, setData] = useState(null);
-  const [newBusinessname, setNewBusinessname] = useState("");
-  const [newGstin, setNewGstin] = useState("");
+  const [chooseBusiness, setChooseBusiness] = useState(true);
+  const [addMoney, setAddMoney] = useState(false);
 
   const getUserDetails = async () => {
     try {
@@ -59,34 +45,10 @@ export default function ProfilePage() {
     }
   };
 
-  const getBusinessList = async () => {
-    try {
-      const res = await axios.get("/api/business", {});
-      setData(res.data.businesses);
-      console.log(res.data.businesses);
-    } catch (error) {
-      console.error(error.response?.data || error.message);
-      toast.error(error.response?.data?.message || error.message);
-      setData(null);
-    }
-  };
+  const handleNext = () => {
 
-  const insertBusiness = async (e) => {
-    e.preventDefault();
-    try {
-      const businessName = newBusinessname;
-      const gstNo = newGstin;
-      console.log("Inserting business:", businessName, gstNo);
-      const res = await axios.post("/api/business", {
-        businessName,
-        gstNo,
-      });
-      toast.success("Business added successfully");
-      console.log(res.data);
-    } catch (error) {
-      console.error(error.response?.data || error.message);
-      toast.error(error.response?.data?.message || error.message);
-    }
+    setChooseBusiness(false);
+    setAddMoney(true);
   };
 
   const logout = async () => {
@@ -99,72 +61,42 @@ export default function ProfilePage() {
       toast.error(error.message);
     }
   };
-  getBusinessList();
+  // getBusinessList();
 
   return (
     <>
       <Card className="w-full max-w-md mx-auto mt-10 shadow-md border-border rounded-xl">
-        <Dialog>
-          <form>
-            <DialogTrigger asChild>
-              <Button variant="outline">Add New Business</Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-[425px]">
-              <DialogHeader>
-                <DialogTitle>Insert Business</DialogTitle>
-                <DialogDescription>
-                  Add new businesses here. Click add when you&apos;re done.
-                </DialogDescription>
-              </DialogHeader>
-              <div className="grid gap-4">
-                <div className="grid gap-3">
-                  <Label htmlFor="name">Business Name</Label>
-                  <Input
-                    id="name"
-                    name="name"
-                    placeholder="Pedro Duarte"
-                    value={newBusinessname}
-                    onChange={(e) => setNewBusinessname(e.target.value)}
-                  />
-                </div>
-                <div className="grid gap-3">
-                  <Label htmlFor="gstin">Business GSTIN</Label>
-                  <Input
-                    id="gstin"
-                    name="gstin"
-                    placeholder="12ABCDE3456F7Z8"
-                    value={newGstin}
-                    onChange={(e) => setNewGstin(e.target.value)}
-                  />
-                </div>
-              </div>
-              <DialogFooter>
-                <DialogClose asChild>
-                  <Button variant="outline">Cancel</Button>
-                </DialogClose>
-                <Button onClick={insertBusiness} type="submit">
-                  Add
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </form>
-        </Dialog>
+        {chooseBusiness && (
+          <>
+            <CardHeader>
+              <CardTitle className="text-center text-2xl">
+                Select Business
+              </CardTitle>
+              <BusinessForm />
 
-        <CardHeader>
-          <CardTitle className="text-center text-2xl">
-            Select Business
-          </CardTitle>
+              
+            </CardHeader>
 
-          <BusinessForm />
-        </CardHeader>
+            <Separator className="my-2" />
 
-        <Separator className="my-2" />
-
-        <CardFooter className="flex flex-col space-y-2">
-          <Button onClick={logout} className="w-full">
-            Logout
-          </Button>
-        </CardFooter>
+            <CardFooter className="flex flex-col space-y-2">
+              <AddNewBusiness />
+            </CardFooter>
+          </>
+        )}
+        {addMoney && (
+          <>
+            <CardHeader>
+              <CardTitle className="text-center text-2xl">
+                Add Money to Wallet
+              </CardTitle>
+            </CardHeader>
+            <Separator className="my-2" />
+            <CardContent>
+              <p className="text-center">Add Money Feature Coming Soon!</p>
+            </CardContent>
+          </>
+        )}
       </Card>
       <Card className="w-full max-w-md mx-auto mt-10 shadow-md border-border rounded-xl">
         <CardHeader>
