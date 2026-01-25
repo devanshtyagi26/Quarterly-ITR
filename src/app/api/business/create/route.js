@@ -117,7 +117,7 @@ export async function POST(request) {
     // Find or create output sheet for the year-quarter
     let outputSheet = await OutputSheet.findOne({
       year: parseInt(year),
-      quarter: quarter,
+      quarter: parseInt(quarter),
     });
 
     if (outputSheet) {
@@ -136,7 +136,7 @@ export async function POST(request) {
       const newOutputSheet = new OutputSheet({
         uuid: uuidv4(),
         year: parseInt(year),
-        quarter: quarter,
+        quarter: parseInt(quarter),
         particulars: [savedParticular._id],
       });
       const savedOutputSheet = await newOutputSheet.save();

@@ -46,7 +46,6 @@ export default function ProfilePage() {
   };
 
   const handleNext = () => {
-
     setChooseBusiness(false);
     setAddMoney(true);
   };
@@ -69,12 +68,7 @@ export default function ProfilePage() {
         {chooseBusiness && (
           <>
             <CardHeader>
-              <CardTitle className="text-center text-2xl">
-                Select Business
-              </CardTitle>
               <BusinessForm />
-
-              
             </CardHeader>
 
             <Separator className="my-2" />

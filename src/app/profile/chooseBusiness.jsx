@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/input-group";
 import { Button } from "@/components/ui/button";
 import AddMoney from "./addMoney";
+import { CardTitle } from "@/components/ui/card";
 
 function BusinessForm() {
   const [businesses, setBusinesses] = useState([]); // Your fetched business data
@@ -201,80 +202,87 @@ function BusinessForm() {
     }
   };
   return (
-    <div className="grid w-full max-w-sm gap-4">
-      {addMoneyToggle ? (
-        <AddMoney business={selectedBusiness} />
-      ) : (
-        <>
-          {/* Business Name Input */}
-          <div className="relative" ref={businessRef}>
-            <InputGroup>
-              <InputGroupInput
-                placeholder="Enter business name"
-                value={businessName}
-                onChange={(e) => handleBusinessNameChange(e.target.value)}
-                onFocus={handleBusinessFocus}
-                autoComplete="off"
-              />
-            </InputGroup>
+    <>
+      <CardTitle className="text-center text-2xl">
+        {selectedBusiness && addMoneyToggle
+          ? selectedBusiness.businessName + " - " + selectedBusiness.gstNo
+          : "Select Business"}
+      </CardTitle>
+      <div className="grid w-full max-w-sm gap-4">
+        {addMoneyToggle ? (
+          <AddMoney business={selectedBusiness} />
+        ) : (
+          <>
+            {/* Business Name Input */}
+            <div className="relative" ref={businessRef}>
+              <InputGroup>
+                <InputGroupInput
+                  placeholder="Enter business name"
+                  value={businessName}
+                  onChange={(e) => handleBusinessNameChange(e.target.value)}
+                  onFocus={handleBusinessFocus}
+                  autoComplete="off"
+                />
+              </InputGroup>
 
-            {showBusinessDropdown && filteredBusinesses.length > 0 && (
-              <div className="absolute z-10 mt-1 w-full rounded-md border bg-white shadow-lg max-h-60 overflow-auto">
-                {filteredBusinesses.map((business) => (
-                  <div
-                    key={business.uuid}
-                    className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
-                    onClick={() => selectBusiness(business)}
-                  >
-                    <div className="font-medium text-gray-500">
-                      {business.businessName}
+              {showBusinessDropdown && filteredBusinesses.length > 0 && (
+                <div className="absolute z-10 mt-1 w-full rounded-md border bg-white shadow-lg max-h-60 overflow-auto">
+                  {filteredBusinesses.map((business) => (
+                    <div
+                      key={business.uuid}
+                      className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
+                      onClick={() => selectBusiness(business)}
+                    >
+                      <div className="font-medium text-gray-500">
+                        {business.businessName}
+                      </div>
+                      <div className="text-sm text-gray-500">
+                        {business.gstNo}
+                      </div>
                     </div>
-                    <div className="text-sm text-gray-500">
-                      {business.gstNo}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+                  ))}
+                </div>
+              )}
+            </div>
 
-          {/* GST Number Input */}
-          <div className="relative" ref={gstRef}>
-            <InputGroup>
-              <InputGroupInput
-                placeholder="Enter GST number"
-                value={gstNo}
-                onChange={(e) => handleGSTChange(e.target.value)}
-                onFocus={handleGSTFocus}
-                autoComplete="off"
-              />
-            </InputGroup>
+            {/* GST Number Input */}
+            <div className="relative" ref={gstRef}>
+              <InputGroup>
+                <InputGroupInput
+                  placeholder="Enter GST number"
+                  value={gstNo}
+                  onChange={(e) => handleGSTChange(e.target.value)}
+                  onFocus={handleGSTFocus}
+                  autoComplete="off"
+                />
+              </InputGroup>
 
-            {showGSTDropdown && filteredGST.length > 0 && (
-              <div className="absolute z-10 mt-1 w-full rounded-md border bg-white shadow-lg max-h-60 overflow-auto">
-                {filteredGST.map((business) => (
-                  <div
-                    key={business.uuid}
-                    className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
-                    onClick={() => selectGST(business)}
-                  >
-                    <div className="font-medium text-gray-500">
-                      {business.gstNo}
+              {showGSTDropdown && filteredGST.length > 0 && (
+                <div className="absolute z-10 mt-1 w-full rounded-md border bg-white shadow-lg max-h-60 overflow-auto">
+                  {filteredGST.map((business) => (
+                    <div
+                      key={business.uuid}
+                      className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
+                      onClick={() => selectGST(business)}
+                    >
+                      <div className="font-medium text-gray-500">
+                        {business.gstNo}
+                      </div>
+                      <div className="text-sm text-gray-500">
+                        {business.businessName}
+                      </div>
                     </div>
-                    <div className="text-sm text-gray-500">
-                      {business.businessName}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-          <Button onClick={handleNext} className="w-[20%] ml-auto">
-            Next
-          </Button>
-        </>
-      )}
-    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            <Button onClick={handleNext} className="w-[20%] ml-auto">
+              Next
+            </Button>
+          </>
+        )}
+      </div>
+    </>
   );
 }
 export default BusinessForm;
