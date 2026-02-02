@@ -1,7 +1,8 @@
-import React, { useState } from "react";
+import React from "react";
+import { useForm, Controller } from "react-hook-form"; // Added Controller
+import { zodResolver } from "@hookform/resolvers/zod";
 import {
   Dialog,
-  DialogClose,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -9,81 +10,118 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import axios from "axios";
+import { toast } from "sonner";
+import { fullSchema } from "@/lib/schema/businessValidation";
+import { Field, FieldGroup } from "@/components/ui/field";
 
 function AddNewBusiness() {
-  const [newBusinessname, setNewBusinessname] = useState("");
-  const [newGstin, setNewGstin] = useState("");
+  const [open, setOpen] = React.useState(false);
 
-  const insertBusiness = async (e) => {
-    e.preventDefault();
+  const form = useForm({
+    resolver: zodResolver(fullSchema),
+    defaultValues: {
+      businessName: "",
+      gstNo: "",
+    },
+  });
+
+  const {
+    handleSubmit,
+    reset,
+    control,
+    formState: { isSubmitting, errors },
+  } = form;
+
+  const onSubmit = async (data) => {
     try {
-      const businessName = newBusinessname;
-      const gstNo = newGstin;
-      console.log("Inserting business:", businessName, gstNo);
-      const res = await axios.post("/api/business", {
-        businessName,
-        gstNo,
-      });
+      await axios.post("/api/business", data);
       toast.success("Business added successfully");
-      console.log(res.data);
+      reset();
+      setOpen(false);
     } catch (error) {
-      console.error(error.response?.data || error.message);
-      toast.error(error.response?.data?.message || error.message);
+      toast.error(error.response?.data?.error || "Something went wrong");
     }
   };
 
   return (
-    <>
-      <Dialog>
-        <form>
-          <DialogTrigger asChild>
-            <Button variant="outline">Add New Business</Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-[425px]">
-            <DialogHeader>
-              <DialogTitle>Insert Business</DialogTitle>
-              <DialogDescription>
-                Add new businesses here. Click add when you&apos;re done.
-              </DialogDescription>
-            </DialogHeader>
-            <div className="grid gap-4">
-              <div className="grid gap-3">
-                <Label htmlFor="name">Business Name</Label>
-                <Input
-                  id="name"
-                  name="name"
-                  placeholder="Pedro Duarte"
-                  value={newBusinessname}
-                  onChange={(e) => setNewBusinessname(e.target.value)}
-                />
-              </div>
-              <div className="grid gap-3">
-                <Label htmlFor="gstin">Business GSTIN</Label>
-                <Input
-                  id="gstin"
-                  name="gstin"
-                  placeholder="12ABCDE3456F7Z8"
-                  value={newGstin}
-                  onChange={(e) => setNewGstin(e.target.value)}
-                />
-              </div>
-            </div>
-            <DialogFooter>
-              <DialogClose asChild>
-                <Button variant="outline">Cancel</Button>
-              </DialogClose>
-              <Button onClick={insertBusiness} type="submit">
-                Add
-              </Button>
-            </DialogFooter>
-          </DialogContent>
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button variant="outline">Add New Business</Button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-[425px]">
+        <form onSubmit={handleSubmit(onSubmit)}>
+          <DialogHeader>
+            <DialogTitle>Insert Business</DialogTitle>
+            <DialogDescription>
+              Add new businesses here. Click add when you're done.
+            </DialogDescription>
+          </DialogHeader>
+
+          <FieldGroup className="py-4">
+            {/* Business Name Field */}
+            <Controller
+              name="businessName"
+              control={control}
+              render={({ field }) => (
+                <Field className="grid gap-2 mb-4">
+                  <Label htmlFor="businessName">Business Name</Label>
+                  <Input
+                    {...field} // This replaces register
+                    id="businessName"
+                    placeholder="Tech Solutions Pvt Ltd"
+                    className={errors.businessName ? "border-destructive" : ""}
+                  />
+                  {errors.businessName && (
+                    <p className="text-destructive text-sm">
+                      {errors.businessName.message}
+                    </p>
+                  )}
+                </Field>
+              )}
+            />
+
+            {/* GST Number Field */}
+            <Controller
+              name="gstNo"
+              control={control}
+              render={({ field }) => (
+                <Field className="grid gap-2">
+                  <Label htmlFor="gstNo">Business GSTIN</Label>
+                  <Input
+                    {...field} // This replaces register
+                    id="gstNo"
+                    placeholder="12ABCDE3456F7Z8"
+                    className={errors.gstNo ? "border-destructive" : ""}
+                  />
+                  {errors.gstNo && (
+                    <p className="text-destructive text-sm">
+                      {errors.gstNo.message}
+                    </p>
+                  )}
+                </Field>
+              )}
+            />
+          </FieldGroup>
+
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting ? "Adding..." : "Add Business"}
+            </Button>
+          </DialogFooter>
         </form>
-      </Dialog>
-    </>
+      </DialogContent>
+    </Dialog>
   );
 }
 

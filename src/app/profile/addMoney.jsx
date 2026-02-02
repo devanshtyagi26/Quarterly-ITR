@@ -25,12 +25,14 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import axios from "axios";
 
 // Import your helper functions
 import { formatDate, calculateTaxes, calculateBillValue } from "@/lib/addMoney";
 
 // IMPORT THE SCHEMA HERE
-import { fullSchema } from "@/lib/schema/sendMoneyValidation";
+import { fullSchema as MoneyValidate } from "@/lib/schema/sendMoneyValidation";
+import { fullSchema as BusinessValidate } from "@/lib/schema/businessValidation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Controller, useForm } from "react-hook-form";
 
@@ -43,7 +45,7 @@ function AddMoney({ business }) {
   const [open, setOpen] = useState(false);
 
   const form = useForm({
-    resolver: zodResolver(fullSchema),
+    resolver: zodResolver(MoneyValidate.and(BusinessValidate)),
     defaultValues: {
       businessName,
       gstNo,
@@ -185,25 +187,35 @@ function AddMoney({ business }) {
   };
 
   function onSubmit(data) {
-    console.log("✅✅✅ FORM SUBMITTED SUCCESSFULLY! ✅✅✅");
-    console.log("Form data:", data);
+    console.log("FORM SUBMITTED SUCCESSFULLY");
 
     const calcTotal = data.taxableValue + data.cgst + data.sgst;
     const totalBill = data.billValue;
 
     if (Math.abs(calcTotal - totalBill) > 1.0) {
       toast.warning("Total bill mismatch detected");
-    } else {
-      toast.success("Transaction submitted successfully!");
     }
 
-    console.log("Ready to send to API:", data);
+    const payload = {
+      ...data,
+    };
+
+    axios
+      .post("/api/business/create", payload)
+      .then((response) => {
+        console.log("API response:", response.data);
+        toast.success("Invoice created successfully");
+      })
+      .catch((error) => {
+        console.error("API error:", error);
+        toast.error(error.response?.data?.error || "Failed to create invoice");
+      });
+
+    clearForm();
   }
 
   const onError = (errors) => {
-    console.log("❌❌❌ FORM VALIDATION FAILED ❌❌❌");
-    console.log("Validation errors:", errors);
-    toast.error("Please fix the form errors before submitting");
+    toast.error(errors[Object.keys(errors)[0]].message);
   };
 
   return (
@@ -458,7 +470,7 @@ function AddMoney({ business }) {
           </div>
 
           {/* Debug: Show all errors */}
-          {Object.keys(form.formState.errors).length > 0 && (
+          {/* {Object.keys(form.formState.errors).length > 0 && (
             <div className="p-4 bg-red-50 border border-red-200 rounded mt-4">
               <p className="font-bold text-red-700 mb-2">Form has errors:</p>
               <ul className="list-disc list-inside text-red-600 text-sm">
@@ -469,7 +481,7 @@ function AddMoney({ business }) {
                 ))}
               </ul>
             </div>
-          )}
+          )} */}
 
           {/* Row 5: Action Buttons */}
           <div className="grid grid-cols-2 gap-4 ml-[50%]">
