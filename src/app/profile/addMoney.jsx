@@ -39,6 +39,9 @@ import {
 
 // IMPORT THE SCHEMA HERE (or define it locally as shown below)
 import { fullSchema } from "@/lib/schema/sendMoneyValidation";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import * as z from "zod";
 
 function AddMoney({ business }) {
   // State for form values
@@ -81,61 +84,32 @@ function AddMoney({ business }) {
     setValue("");
   };
 
-  // --- UPDATED SEND DATA FUNCTION ---
-  const sendData = (e) => {
-    e.preventDefault();
+  const form = useForm({
+    resolver: zodResolver(fullSchema),
+    defaultValues: {
+      taxableValue: "",
+      gstRate: "",
+      cgst: "",
+      sgst: "",
+      billValue: "",
+      invoiceNo: "",
+      year: "",
+      quarter: "",
+    },
+    mode: "onChange", // Validates as you type
+  });
 
-    // 1. Construct the Payload
-    // We construct the object strictly as expected by the Zod Schema
-    const rawData = {
-      businessName: business?.businessName || "",
-      gstNo: business?.gstNo || "",
-      invoiceDate: formatDate(date), // Helper returns "" if date is null
-      invoiceNo: formData.invoiceNo,
-      // Coercion happens in Zod, but passing raw strings is fine
-      taxableValue: formData.taxableValue,
-      gstRate: formData.gstRate,
-      cgst: formData.cgst,
-      sgst: formData.sgst,
-      totalBill: formData.billValue,
-      year: formData.year,
-      quarter: formData.quarter,
-    };
-    // 2. Validate with Zod
-    const result = fullSchema.safeParse(rawData);
+  const onSubmit = (data) => {
+    // Data is ALREADY validated and transformed by Zod here!
+    console.log("Ready to send:", data);
 
-    // 3. Handle Validation Errors
-    if (!result.success) {
-      // Get the first error message
-      const firstError = result.error.issues[0].message;
-
-      // Optional: Log full errors for debugging
-      toast.error(`Validation Error: ${firstError}`);
-      return;
+    // Math Check (Non-blocking warning)
+    const calcTotal = data.taxableValue + data.cgst + data.sgst;
+    if (Math.abs(calcTotal - data.totalBill) > 1.0) {
+      toast.warning("Total bill mismatch detected");
     }
 
-    // 4. Success!
-    // result.data contains the clean, number-coerced data ready for the API
-    const dataToSend = result.data;
-
-    const calculatedTotal =
-      dataToSend.taxableValue + dataToSend.cgst + dataToSend.sgst;
-    const difference = Math.abs(calculatedTotal - dataToSend.totalBill);
-
-    if (difference > 1.0) {
-      // Show Yellow Warning
-      toast.warning("Note: Total Bill does not match Taxable + Taxes", {
-        description: "Data is being saved anyway.",
-        duration: 5000, // Stay visible longer
-      });
-    }
-
-    console.log("Validated Data to Send:", dataToSend);
-
-    // API Call Example:
-    // axios.post('/api/invoice', dataToSend)
-    //   .then(() => toast.success("Invoice added successfully!"))
-    //   .catch(err => toast.error("Failed to add invoice"));
+    // API Call...
   };
 
   return (
@@ -145,164 +119,171 @@ function AddMoney({ business }) {
         We need the transaction details to process your request.
       </FieldDescription>
       <FieldGroup>
-        {/* Row 1: Taxable Value & GST Rate */}
-        <div className="grid grid-cols-2 gap-4">
-          <Field className="mx-auto w-48">
-            <FieldLabel htmlFor="invoiceDate">Invoice Date</FieldLabel>
-            <InputGroup>
-              <InputGroupInput
-                id="invoiceDate"
-                value={value}
-                placeholder="DD-MM-YYYY"
-                maxLength={10}
-                onChange={(e) =>
-                  handleDateChange(
-                    e,
-                    setValue,
-                    setDate,
-                    setMonth,
-                    setFormData,
-                    date,
-                  )
-                }
-                required
-                onKeyDown={(e) => {
-                  if (e.key === "ArrowDown") {
-                    e.preventDefault();
-                    setOpen(true);
+        <form onSubmit={form.handleSubmit(onSubmit)}>
+          {/* Row 1: Taxable Value & GST Rate */}
+          <div className="grid grid-cols-2 gap-4">
+            <Field className="mx-auto w-48">
+              <FieldLabel htmlFor="invoiceDate">Invoice Date</FieldLabel>
+              <InputGroup>
+                <InputGroupInput
+                  id="invoiceDate"
+                  value={value}
+                  placeholder="DD-MM-YYYY"
+                  maxLength={10}
+                  onChange={(e) =>
+                    handleDateChange(
+                      e,
+                      setValue,
+                      setDate,
+                      setMonth,
+                      setFormData,
+                      date,
+                    )
                   }
-                }}
-              />
-              <InputGroupAddon align="inline-end">
-                <Popover open={open} onOpenChange={setOpen}>
-                  <PopoverTrigger asChild>
-                    <InputGroupButton
-                      variant="ghost"
-                      size="icon-xs"
-                      aria-label="Select date"
+                  required
+                  onKeyDown={(e) => {
+                    if (e.key === "ArrowDown") {
+                      e.preventDefault();
+                      setOpen(true);
+                    }
+                  }}
+                />
+                <InputGroupAddon align="inline-end">
+                  <Popover open={open} onOpenChange={setOpen}>
+                    <PopoverTrigger asChild>
+                      <InputGroupButton
+                        variant="ghost"
+                        size="icon-xs"
+                        aria-label="Select date"
+                      >
+                        <CalendarIcon />
+                      </InputGroupButton>
+                    </PopoverTrigger>
+                    <PopoverContent
+                      className="w-auto overflow-hidden p-0"
+                      align="end"
                     >
-                      <CalendarIcon />
-                    </InputGroupButton>
-                  </PopoverTrigger>
-                  <PopoverContent
-                    className="w-auto overflow-hidden p-0"
-                    align="end"
-                  >
-                    <Calendar
-                      mode="single"
-                      selected={date}
-                      month={month}
-                      onMonthChange={setMonth}
-                      onSelect={(selectedDate) => {
-                        if (selectedDate) {
-                          setDate(selectedDate);
-                          setValue(formatDate(selectedDate));
-                          setOpen(false);
-                        }
-                      }}
-                    />
-                  </PopoverContent>
-                </Popover>
-              </InputGroupAddon>
-            </InputGroup>
-          </Field>
+                      <Calendar
+                        mode="single"
+                        selected={date}
+                        month={month}
+                        onMonthChange={setMonth}
+                        onSelect={(selectedDate) => {
+                          if (selectedDate) {
+                            setDate(selectedDate);
+                            setValue(formatDate(selectedDate));
+                            setOpen(false);
+                          }
+                        }}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </InputGroupAddon>
+              </InputGroup>
+            </Field>
 
-          <Field>
-            <FieldLabel htmlFor="invoiceNo">Invoice Number</FieldLabel>
-            <Input
-              id="invoiceNo"
-              placeholder="INV-00123"
-              value={formData.invoiceNo}
-              onChange={(e) => handleInvoiceNo(e, setFormData)}
-            />
-          </Field>
-        </div>
+            <Field>
+              <FieldLabel htmlFor="invoiceNo">Invoice Number</FieldLabel>
+              <Input
+                id="invoiceNo"
+                placeholder="INV-00123"
+                value={formData.invoiceNo}
+                onChange={(e) => handleInvoiceNo(e, setFormData)}
+              />
+            </Field>
+          </div>
 
-        <div className="grid grid-cols-2 gap-4">
-          <Field>
-            <FieldLabel htmlFor="taxableValue">Taxable Value</FieldLabel>
-            <Input
-              id="taxableValue"
-              type="number"
-              min="0"
-              value={formData.taxableValue}
-              onChange={(e) => handleTaxableValueChange(e, setFormData)}
-            />
-          </Field>
+          <div className="grid grid-cols-2 gap-4">
+            <Field>
+              <FieldLabel htmlFor="taxableValue">Taxable Value</FieldLabel>
+              <Input
+                id="taxableValue"
+                type="number"
+                min="0"
+                value={formData.taxableValue}
+                onChange={(e) => handleTaxableValueChange(e, setFormData)}
+              />
+              {form.formState.errors.taxableValue && (
+                <p className="text-red-500 text-sm">
+                  {form.formState.errors.taxableValue.message}
+                </p>
+              )}
+            </Field>
 
-          <Field>
-            <FieldLabel htmlFor="gstRate">GST Rate (%)</FieldLabel>
-            <Input
-              id="gstRate"
-              type="number"
-              min="0"
-              value={formData.gstRate}
-              onChange={(e) => handleGstRateChange(e, setFormData)}
-              disabled={!isTaxableValueValid}
-              className={
-                !isTaxableValueValid ? "opacity-50 cursor-not-allowed" : ""
-              }
-            />
-          </Field>
-        </div>
+            <Field>
+              <FieldLabel htmlFor="gstRate">GST Rate (%)</FieldLabel>
+              <Input
+                id="gstRate"
+                type="number"
+                min="0"
+                value={formData.gstRate}
+                onChange={(e) => handleGstRateChange(e, setFormData)}
+                disabled={!isTaxableValueValid}
+                className={
+                  !isTaxableValueValid ? "opacity-50 cursor-not-allowed" : ""
+                }
+              />
+            </Field>
+          </div>
 
-        {/* Row 2: CGST & SGST */}
-        <div className="grid grid-cols-2 gap-4">
-          <Field>
-            <FieldLabel htmlFor="cgst">CGST</FieldLabel>
-            <Input
-              id="cgst"
-              type="number"
-              min="0"
-              value={formData.cgst}
-              onChange={(e) => handleTaxManualChange(e, setFormData)}
-              disabled={!isRateValid}
-            />
-          </Field>
+          {/* Row 2: CGST & SGST */}
+          <div className="grid grid-cols-2 gap-4">
+            <Field>
+              <FieldLabel htmlFor="cgst">CGST</FieldLabel>
+              <Input
+                id="cgst"
+                type="number"
+                min="0"
+                value={formData.cgst}
+                onChange={(e) => handleTaxManualChange(e, setFormData)}
+                disabled={!isRateValid}
+              />
+            </Field>
 
-          <Field>
-            <FieldLabel htmlFor="sgst">SGST</FieldLabel>
-            <Input
-              id="sgst"
-              type="number"
-              min="0"
-              value={formData.sgst}
-              onChange={(e) => handleTaxManualChange(e, setFormData)}
-              disabled={!isRateValid}
-            />
-          </Field>
-        </div>
+            <Field>
+              <FieldLabel htmlFor="sgst">SGST</FieldLabel>
+              <Input
+                id="sgst"
+                type="number"
+                min="0"
+                value={formData.sgst}
+                onChange={(e) => handleTaxManualChange(e, setFormData)}
+                disabled={!isRateValid}
+              />
+            </Field>
+          </div>
 
-        <div className="grid grid-cols-2 gap-4 ml-[50%]">
-          <Field>
-            <FieldLabel htmlFor="billValue">Bill Value</FieldLabel>
-            <Input
-              id="billValue"
-              type="number"
-              min="0"
-              value={formData.billValue}
-              onChange={(e) => handleBillValueChange(e, setFormData)}
-              disabled={!isRateValid}
-            />
-          </Field>
-        </div>
+          <div className="grid grid-cols-2 gap-4 ml-[50%]">
+            <Field>
+              <FieldLabel htmlFor="billValue">Bill Value</FieldLabel>
+              <Input
+                id="billValue"
+                type="number"
+                min="0"
+                value={formData.billValue}
+                onChange={(e) => handleBillValueChange(e, setFormData)}
+                disabled={!isRateValid}
+              />
+            </Field>
+          </div>
 
-        <div className="grid grid-cols-2 gap-4 ml-[50%]">
-          <Button
-            type="button"
-            onClick={sendData}
-            className="mt-4 bg-green-500 text-white rounded px-4 py-2"
-          >
-            Submit
-          </Button>
-          <Button
-            type="button"
-            onClick={clearForm}
-            className="mt-4 bg-red-500 text-white rounded px-4 py-2"
-          >
-            Clear
-          </Button>
-        </div>
+          <div className="grid grid-cols-2 gap-4 ml-[50%]">
+            <Button
+              type="button"
+              onClick={sendData}
+              className="mt-4 bg-green-500 text-white rounded px-4 py-2"
+            >
+              Submit
+            </Button>
+            <Button
+              type="button"
+              onClick={clearForm}
+              className="mt-4 bg-red-500 text-white rounded px-4 py-2"
+            >
+              Clear
+            </Button>
+          </div>
+        </form>
       </FieldGroup>
     </FieldSet>
   );
