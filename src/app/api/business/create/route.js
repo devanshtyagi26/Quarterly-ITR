@@ -1,7 +1,6 @@
 import { connect } from "@/dbConnection/dbConfig";
 import Business from "@/models/businessModel";
 import OutputParticular from "@/models/outputParticularModel";
-import OutputSheet from "@/models/outputSheetModel";
 import { NextRequest, NextResponse } from "next/server";
 import { v4 as uuidv4 } from "uuid";
 
@@ -23,7 +22,7 @@ export async function POST(request) {
       totalBill,
     } = reqBody;
 
-    // Comprehensive Input validation
+    // 1. Comprehensive Input validation
     if (!businessName?.trim() || !gstNo?.trim()) {
       return NextResponse.json(
         { error: "Business name and GST number are required" },
@@ -40,45 +39,38 @@ export async function POST(request) {
 
     if (taxableValue == null || gstRate == null) {
       return NextResponse.json(
-        { error: "All financial fields are required" },
+        { error: "Financial fields (Taxable Value/GST Rate) are required" },
         { status: 400 },
       );
     }
 
-    // GST format validation (15 characters for Indian GST)
     if (gstNo.length !== 15) {
       return NextResponse.json(
-        { error: "Invalid GST number format (must be 15 characters)" },
+        { error: "Invalid GST number format" },
         { status: 400 },
       );
     }
 
-    // Check if business exists
+    // 2. Business Verification
     const business = await Business.findOne({ gstNo: gstNo.trim() });
-
     if (!business) {
       return NextResponse.json(
-        {
-          error:
-            "Business with this GST number does not exist. Please create the business first.",
-        },
+        { error: "Business not found. Please create it first." },
         { status: 404 },
       );
     }
 
-    // Verify business name matches
     if (business.businessName !== businessName.trim()) {
       return NextResponse.json(
         {
-          error:
-            "Business name does not match the registered name for this GST number",
+          error: "Business name does not match registered name",
           registeredName: business.businessName,
         },
         { status: 400 },
       );
     }
 
-    // Check for duplicate invoice
+    // 3. Duplicate Check (Manual check before DB insert)
     const duplicateInvoice = await OutputParticular.findOne({
       gstNo: gstNo.trim(),
       invoiceNo: invoiceNo.trim(),
@@ -91,70 +83,56 @@ export async function POST(request) {
       );
     }
 
-    let cgstValue = cgst;
-    let totalBillValue = totalBill;
+    // 4. Financial Calculations
+    const parsedTaxable = parseFloat(taxableValue);
+    const parsedGstRate = parseFloat(gstRate);
+    // Use provided CGST or calculate it: (Taxable * Rate) / 100 / 2 (assuming cgst + sgst = rate)
+    // Most Indian GST logic: cgst = (taxable * (rate/100)) / 2
+    let cgstValue =
+      cgst != null
+        ? parseFloat(cgst)
+        : (parsedTaxable * (parsedGstRate / 100)) / 2;
+    let totalBillValue =
+      totalBill != null ? parseFloat(totalBill) : parsedTaxable + cgstValue * 2;
 
-    if (cgstValue == null || totalBillValue == null) {
-      // Calculate CGST and total bill
-      cgstValue = (parseFloat(taxableValue) * parseFloat(gstRate)) / 100;
-      totalBillValue = parseFloat(taxableValue) + 2 * cgstValue;
-    }
-    // Create new particular
+    // 5. Save Document
     const newParticular = new OutputParticular({
       uuid: uuidv4(),
       businessName: businessName.trim(),
       gstNo: gstNo.trim(),
       invoiceNo: invoiceNo.trim(),
       invoiceDate: new Date(invoiceDate),
-      taxableValue: parseFloat(taxableValue),
-      gstRate: parseFloat(gstRate),
-      cgst: parseFloat(cgstValue),
-      sgst: parseFloat(cgstValue),
-      totalBill: parseFloat(totalBillValue),
-    });
-    const savedParticular = await newParticular.save();
-
-    // Find or create output sheet for the year-quarter
-    let outputSheet = await OutputSheet.findOne({
+      taxableValue: parsedTaxable,
+      gstRate: parsedGstRate,
+      cgst: cgstValue,
+      sgst: cgstValue, // Usually SGST = CGST
+      totalBill: totalBillValue,
       year: parseInt(year),
       quarter: parseInt(quarter),
     });
 
-    if (outputSheet) {
-      // Add to existing sheet
-      outputSheet.particulars.push(savedParticular._id);
-      await outputSheet.save();
+    const savedParticular = await newParticular.save();
 
-      return NextResponse.json({
-        message: "Invoice added to existing quarter sheet",
-        success: true,
-        outputSheet: outputSheet,
-        particular: savedParticular,
-      });
-    } else {
-      // Create new output sheet
-      const newOutputSheet = new OutputSheet({
-        uuid: uuidv4(),
-        year: parseInt(year),
-        quarter: parseInt(quarter),
-        particulars: [savedParticular._id],
-      });
-      const savedOutputSheet = await newOutputSheet.save();
-
-      return NextResponse.json({
-        message: "Invoice added to new quarter sheet",
-        success: true,
-        outputSheet: savedOutputSheet,
-        particular: savedParticular,
-      });
-    }
-  } catch (error) {
-    console.error("Error creating invoice:", error);
+    // --- IMPORTANT: RETURN THE SUCCESS RESPONSE ---
     return NextResponse.json(
       {
-        error: "Failed to create invoice",
-        details: error.message,
+        message: "Invoice created successfully",
+        success: true,
+        data: savedParticular,
       },
+      { status: 201 },
+    );
+  } catch (error) {
+    if (error.code === 11000) {
+      return NextResponse.json(
+        { error: "Database Conflict: Duplicate entry detected" },
+        { status: 409 },
+      );
+    }
+
+    console.error("Error creating invoice:", error);
+    return NextResponse.json(
+      { error: "Internal Server Error", details: error.message },
       { status: 500 },
     );
   }

@@ -136,28 +136,26 @@ const handleGstRateChange = (e, setFormData) => {
 
 // --- Helper Functions ---
 
+// FIXED: Returns numbers instead of strings
 const calculateTaxes = (taxableValue, rate) => {
   const val = parseFloat(taxableValue);
   const r = parseFloat(rate);
 
-  if (isNaN(val) || isNaN(r)) return { cgst: "", sgst: "" };
+  if (isNaN(val) || isNaN(r)) return { cgst: 0, sgst: 0 }; // Return 0 instead of ""
 
-  // Total GST = (Value * Rate) / 100
-  // CGST = Total / 2
-  // SGST = Total / 2
-  const totalTax = (val * r) / 100;
-  const halfTax = (totalTax / 2).toFixed(2); // Fixing to 2 decimal places
+  const halfTax = parseFloat(((val * r) / 100 / 2).toFixed(2)); // Return number, not string
 
   return { cgst: halfTax, sgst: halfTax };
 };
 
+// FIXED: Returns number instead of string
 const calculateBillValue = (taxable, cgst, sgst) => {
   const t = parseFloat(taxable) || 0;
   const c = parseFloat(cgst) || 0;
   const s = parseFloat(sgst) || 0;
 
-  // Returns formatted string like "1416.00"
-  return (t + c + s).toFixed(2);
+  // Returns number, not string
+  return parseFloat((t + c + s).toFixed(2));
 };
 
 export {

@@ -21,7 +21,7 @@ const fullSchema = z.object({
 
   cgst: z.coerce.number().min(1, "CGST must be at least 1"),
   sgst: z.coerce.number().min(1, "SGST must be at least 1"),
-  totalBill: z.coerce.number().min(1, "Total bill must be at least 1"),
+  billValue: z.coerce.number().min(1, "Bill value must be at least 1"),
 
   // --- Period Details ---
   year: z.coerce.number().min(2000, "Invalid year").max(2100, "Invalid year"),
