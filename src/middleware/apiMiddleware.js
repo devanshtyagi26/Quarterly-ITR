@@ -116,11 +116,10 @@ export class APIMonitor {
         level,
         message: error
           ? "Request failed"
-          : errorMessage
-            ? errorMessage
-            : statusCode >= 400
+          : errorMessage ||
+            (statusCode >= 400
               ? `Request rejected with status ${statusCode}`
-              : "Request completed",
+              : "Request completed"),
         userId: this.userId,
         statusCode,
         duration: `${duration}ms`,
@@ -211,20 +210,27 @@ export function withAPIHandler(handler, options = {}) {
     let errorMessageToStore = null;
 
     try {
+      // Skip logging for /api/logs endpoint to prevent recursion
+      const shouldLog = !endpoint.includes("/api/logs");
+
       // Log incoming request
-      await monitor.logRequest();
+      if (shouldLog) {
+        await monitor.logRequest();
+      }
 
       // Method validation
       if (allowedMethods && !allowedMethods.includes(request.method)) {
         errorMessageToStore = `Method ${request.method} not allowed`;
-        await monitor.log("warn", errorMessageToStore, { statusCode: 405 });
-        await monitor.saveToDB(
-          405,
-          false,
-          Date.now() - monitor.startTime,
-          null,
-          errorMessageToStore,
-        );
+        if (shouldLog) {
+          await monitor.log("warn", errorMessageToStore, { statusCode: 405 });
+          await monitor.saveToDB(
+            405,
+            false,
+            Date.now() - monitor.startTime,
+            null,
+            errorMessageToStore,
+          );
+        }
         return NextResponse.json(
           { error: errorMessageToStore },
           { status: 405 },
@@ -239,16 +245,18 @@ export function withAPIHandler(handler, options = {}) {
 
         if (!authContext.authenticated) {
           errorMessageToStore = authContext.error;
-          await monitor.log("warn", errorMessageToStore, {
-            statusCode: authContext.statusCode,
-          });
-          await monitor.saveToDB(
-            authContext.statusCode,
-            false,
-            Date.now() - monitor.startTime,
-            null,
-            errorMessageToStore,
-          );
+          if (shouldLog) {
+            await monitor.log("warn", errorMessageToStore, {
+              statusCode: authContext.statusCode,
+            });
+            await monitor.saveToDB(
+              authContext.statusCode,
+              false,
+              Date.now() - monitor.startTime,
+              null,
+              errorMessageToStore,
+            );
+          }
           return NextResponse.json(
             { error: authContext.error },
             { status: authContext.statusCode },
@@ -266,7 +274,7 @@ export function withAPIHandler(handler, options = {}) {
       const responseData = await clonedResponse.json().catch(() => null);
 
       // Log error message if present in response
-      if (responseData?.error && response.status >= 400) {
+      if (responseData?.error && response.status >= 400 && shouldLog) {
         errorMessageToStore = responseData.error;
         await monitor.log(
           response.status >= 500 ? "error" : "warn",
@@ -277,18 +285,23 @@ export function withAPIHandler(handler, options = {}) {
 
       // Log successful response
       const duration = Date.now() - monitor.startTime;
-      await monitor.saveToDB(
-        response.status || 200,
-        response.status < 400,
-        duration,
-        null,
-        errorMessageToStore,
-      );
+      if (shouldLog) {
+        await monitor.saveToDB(
+          response.status || 200,
+          response.status < 400,
+          duration,
+          null,
+          errorMessageToStore,
+        );
+      }
 
       return response;
     } catch (error) {
       // Log error
-      await monitor.logError(error);
+      const shouldLog = !endpoint.includes("/api/logs");
+      if (shouldLog) {
+        await monitor.logError(error);
+      }
 
       return NextResponse.json(
         {

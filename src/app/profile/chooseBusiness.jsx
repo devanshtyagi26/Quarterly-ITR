@@ -91,14 +91,12 @@ function BusinessForm() {
   // Handle ESC key to close dropdowns and clear values
   useEffect(() => {
     const handleEscKey = (e) => {
-      if (e.key === "Escape") {
-        if (showBusinessDropdown || showGSTDropdown) {
-          setShowBusinessDropdown(false);
-          setShowGSTDropdown(false);
-          setBusinessName("");
-          setGstNo("");
-          setSelectedBusiness(null);
-        }
+      if (e.key === "Escape" && (showBusinessDropdown || showGSTDropdown)) {
+        setShowBusinessDropdown(false);
+        setShowGSTDropdown(false);
+        setBusinessName("");
+        setGstNo("");
+        setSelectedBusiness(null);
       }
     };
 
