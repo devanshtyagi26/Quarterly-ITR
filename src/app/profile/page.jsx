@@ -64,7 +64,7 @@ export default function ProfilePage() {
 
   return (
     <>
-      <Card className="w-full max-w-md mx-auto mt-10 shadow-md border-border rounded-xl">
+      <Card className="w-full max-w-md mx-auto mt-20 shadow-md border-border rounded-xl">
         {chooseBusiness && (
           <>
             <CardHeader>

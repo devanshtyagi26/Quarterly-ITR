@@ -7,7 +7,6 @@ if (!MONGODB_URI) {
   throw new Error("MONGODB_URI not defined in environment.");
 }
 
-console.log("Connecting to MongoDB..., URI:", MONGODB_URI);
 // Global cache to prevent multiple connections in dev
 let cached = global.mongoose;
 

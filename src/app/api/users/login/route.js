@@ -17,7 +17,7 @@ export async function POST(request) {
     if (!user) {
       return NextResponse.json(
         { error: "User does not Exists" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -27,7 +27,7 @@ export async function POST(request) {
     if (!validPassword) {
       return NextResponse.json(
         { message: "Check your Credentials" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -37,7 +37,7 @@ export async function POST(request) {
       email: user.email,
     };
     const token = jwt.sign(tokenData, process.env.TOKEN_SECRET, {
-      expiresIn: "1h",
+      expiresIn: "24h",
     });
 
     const response = NextResponse.json({
