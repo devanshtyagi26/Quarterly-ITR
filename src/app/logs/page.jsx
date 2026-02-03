@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import axios from "axios";
 
 export default function LogsPage() {
@@ -8,6 +8,8 @@ export default function LogsPage() {
   const [statistics, setStatistics] = useState({});
   const [pagination, setPagination] = useState({});
   const [loading, setLoading] = useState(true);
+  const [rateLimitInfo, setRateLimitInfo] = useState({});
+  const [isLive, setIsLive] = useState(false); // Toggle for Live Mode
   const [filters, setFilters] = useState({
     page: 1,
     limit: 50,
@@ -15,29 +17,54 @@ export default function LogsPage() {
     endpoint: "",
   });
 
-  const fetchLogs = async () => {
-    try {
-      setLoading(true);
-      const params = new URLSearchParams();
+  // Wrapped in useCallback to prevent unnecessary re-renders in the interval
+  const fetchLogs = useCallback(
+    async (isSilent = false) => {
+      try {
+        if (!isSilent) setLoading(true);
+        const params = new URLSearchParams();
 
-      Object.entries(filters).forEach(([key, value]) => {
-        if (value) params.append(key, value);
-      });
+        Object.entries(filters).forEach(([key, value]) => {
+          if (value) params.append(key, value);
+        });
 
-      const response = await axios.get(`/api/logs?${params.toString()}`);
-      setLogs(response.data.logs);
-      setStatistics(response.data.statistics);
-      setPagination(response.data.pagination);
-    } catch (error) {
-      console.error("Error fetching logs:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
+        const response = await axios.get(`/api/logs?${params.toString()}`);
 
+        setLogs(response.data.logs);
+        setStatistics(response.data.statistics);
+        setPagination(response.data.pagination);
+
+        if (response.data.businessRateLimit) {
+          setRateLimitInfo({
+            limit: response.data.businessRateLimit.limit,
+            remaining: response.data.businessRateLimit.remaining,
+            reset: response.data.businessRateLimit.reset,
+          });
+        }
+      } catch (error) {
+        console.error("Error fetching logs:", error);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [filters],
+  );
+
+  // Initial fetch and filter-change fetch
   useEffect(() => {
     fetchLogs();
-  }, [filters]);
+  }, [fetchLogs]);
+
+  // AUTO-REFRESH LOGIC (0.5s)
+  useEffect(() => {
+    let interval;
+    if (isLive) {
+      interval = setInterval(() => {
+        fetchLogs(true); // Pass 'true' for silent update (no loading spinner)
+      }, 500);
+    }
+    return () => clearInterval(interval);
+  }, [isLive, fetchLogs]);
 
   const getLevelColor = (level) => {
     switch (level) {
@@ -81,7 +108,83 @@ export default function LogsPage() {
 
   return (
     <div className="container mx-auto p-6 mt-10">
-      <h1 className="text-3xl font-bold mb-6">API Monitoring Logs</h1>
+      <div className="flex justify-between items-center mb-6">
+        <div>
+          <h1 className="text-3xl font-bold">API Monitoring Logs</h1>
+          {/* Live Mode Toggle */}
+          <div className="flex items-center gap-2 mt-2">
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                className="sr-only peer"
+                checked={isLive}
+                onChange={() => setIsLive(!isLive)}
+              />
+              <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+            </label>
+            <span
+              className={`text-sm font-semibold ${isLive ? "text-blue-600 animate-pulse" : "text-gray-500"}`}
+            >
+              {isLive ? "LIVE UPDATING (0.5s)" : "LIVE MODE OFF"}
+            </span>
+          </div>
+        </div>
+        {/* Live Rate Limit Display */}
+        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900 dark:to-indigo-900 p-4 rounded-lg shadow-md border border-blue-200 dark:border-blue-700">
+          <div className="flex items-center gap-4">
+            <div className="text-center">
+              <p className="text-xs text-gray-600 dark:text-gray-300 mb-1">
+                Rate Limit
+              </p>
+              <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                {rateLimitInfo.remaining > 0 ? rateLimitInfo.remaining : "0"} /{" "}
+                {rateLimitInfo.limit || "..."}
+              </p>
+            </div>
+            <div className="border-l border-blue-300 dark:border-blue-600 h-12"></div>
+            <div className="text-center">
+              <p className="text-xs text-gray-600 dark:text-gray-300 mb-1">
+                Status
+              </p>
+              <div className="flex items-center gap-2">
+                {rateLimitInfo.remaining !== null &&
+                  rateLimitInfo.remaining !== undefined &&
+                  rateLimitInfo.limit !== null &&
+                  rateLimitInfo.limit !== undefined && (
+                    <>
+                      <div
+                        className={`w-3 h-3 rounded-full ${
+                          parseInt(rateLimitInfo.remaining) /
+                            parseInt(rateLimitInfo.limit) >
+                          0.5
+                            ? "bg-green-500 animate-pulse"
+                            : parseInt(rateLimitInfo.remaining) /
+                                  parseInt(rateLimitInfo.limit) >
+                                0.2
+                              ? "bg-yellow-500 animate-pulse"
+                              : "bg-red-500 animate-pulse"
+                        }`}
+                      ></div>
+                      <span className="text-sm font-medium">
+                        {parseInt(rateLimitInfo.remaining) === 0
+                          ? "Exhausted"
+                          : "Active"}
+                      </span>
+                    </>
+                  )}
+              </div>
+            </div>
+          </div>
+          {console.log(rateLimitInfo)}
+          {Number(rateLimitInfo.limit) > 0 &&
+            Number(rateLimitInfo.remaining) / Number(rateLimitInfo.limit) <
+              0.1 && (
+              <div className="mt-2 text-xs text-orange-600 dark:text-orange-400">
+                ⚠️ Low quota remaining
+              </div>
+            )}
+        </div>
+      </div>
 
       {/* Statistics */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">

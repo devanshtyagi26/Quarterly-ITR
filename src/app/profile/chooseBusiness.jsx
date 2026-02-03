@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import AddMoney from "./addMoney";
 import { CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { toast } from "sonner";
 
 function BusinessForm() {
   const [businesses, setBusinesses] = useState([]); // Your fetched business data
@@ -33,10 +34,15 @@ function BusinessForm() {
     async function fetchBusinesses() {
       try {
         const response = await fetch("/api/business");
+        if (!response.ok) {
+          toast.error("Rate limit exceeded. Please try again later.");
+          throw new Error("Failed to fetch businesses");
+        }
         const data = await response.json();
         setBusinesses(data.businesses || []);
         setLoading(false);
       } catch (error) {
+        toast.error("An error occurred while fetching businesses.");
         console.error("Error fetching businesses:", error);
       }
     }

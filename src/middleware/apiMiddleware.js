@@ -199,10 +199,19 @@ export async function authenticate(request) {
  * API Handler Wrapper - Combines authentication and monitoring
  */
 export function withAPIHandler(handler, options = {}) {
+  // Parse env variables with proper fallbacks
+  const defaultLimit = parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || "100");
+  const defaultWindowMs =
+    parseInt(process.env.RATE_LIMIT_WINDOW_SECONDS || "900") * 1000;
+
   const {
     requireAuth = true,
     endpoint = "unknown",
     allowedMethods = null,
+    rateLimitConfig = {
+      limit: defaultLimit,
+      windowMs: defaultWindowMs,
+    },
   } = options;
 
   return async function (request) {
@@ -266,6 +275,53 @@ export function withAPIHandler(handler, options = {}) {
         monitor.setUserId(authContext.userId);
       }
 
+      // Apply rate limiting with user/IP identifier
+      const baseIdentifier =
+        authContext.userId ||
+        request.headers.get("x-forwarded-for") ||
+        request.headers.get("x-real-ip") ||
+        "unknown";
+
+      const identifier = `${endpoint}:${baseIdentifier}`;
+
+      const rateLimitCheck = rateLimit(
+        identifier,
+        rateLimitConfig.limit,
+        rateLimitConfig.windowMs,
+      );
+
+      if (!rateLimitCheck.allowed) {
+        errorMessageToStore = "Rate limit exceeded. Too many requests.";
+
+        if (shouldLog) {
+          await monitor.log("warn", errorMessageToStore, {
+            statusCode: 429,
+          });
+          await monitor.saveToDB(
+            429,
+            false,
+            Date.now() - monitor.startTime,
+            null,
+            errorMessageToStore,
+          );
+        }
+
+        return NextResponse.json(
+          { error: errorMessageToStore },
+          {
+            status: 429,
+            headers: {
+              "Retry-After": rateLimitCheck.retryAfter.toString(),
+              "X-RateLimit-Limit": rateLimitConfig.limit.toString(),
+              "X-RateLimit-Remaining": "0",
+              "X-RateLimit-Reset": new Date(
+                Date.now() + rateLimitCheck.retryAfter * 1000,
+              ).toISOString(),
+            },
+          },
+        );
+      }
+
       // Execute the actual handler
       const response = await handler(request, authContext, monitor);
 
@@ -295,6 +351,22 @@ export function withAPIHandler(handler, options = {}) {
         );
       }
 
+      // Add rate limit info to response headers for all requests
+      const remaining = Math.max(
+        0,
+        rateLimitConfig.limit - rateLimitCheck.currentCount,
+      );
+
+      response.headers.set(
+        "x-ratelimit-limit",
+        rateLimitConfig.limit.toString(),
+      );
+      response.headers.set("x-ratelimit-remaining", remaining.toString());
+      response.headers.set(
+        "x-ratelimit-reset",
+        new Date(Date.now() + rateLimitConfig.windowMs).toISOString(),
+      );
+
       return response;
     } catch (error) {
       // Log error
@@ -320,22 +392,52 @@ export function withAPIHandler(handler, options = {}) {
  */
 const rateLimitMap = new Map();
 
-export function rateLimit(identifier, limit = 100, windowMs = 60000) {
+/**
+ * Basic in-memory rate limiter.
+ * NOTE: per-process only; not suitable for multi-instance production without a shared store.
+ */
+/**
+ * Basic in-memory rate limiter with Read-Only support.
+ */
+export function rateLimit(
+  identifier,
+  limit = 100,
+  windowMs = 60000,
+  isReadOnly = false,
+) {
   const now = Date.now();
-  const userRequests = rateLimitMap.get(identifier) || [];
+  const previousRequests = rateLimitMap.get(identifier) || [];
 
-  // Filter requests within the time window
-  const recentRequests = userRequests.filter((time) => now - time < windowMs);
+  // 1. Filter: Keep only requests within the window
+  const recentRequests = previousRequests.filter(
+    (timestamp) => now - timestamp < windowMs,
+  );
 
+  // 2. Cleanup: If window is empty, delete key to save memory
+  if (recentRequests.length === 0 && rateLimitMap.has(identifier)) {
+    rateLimitMap.delete(identifier);
+  }
+
+  // 3. Check: Is the limit already reached?
   if (recentRequests.length >= limit) {
+    const oldest = recentRequests[0];
+    const retryAfterSeconds = Math.ceil((oldest + windowMs - now) / 1000);
+
     return {
       allowed: false,
-      retryAfter: Math.ceil((recentRequests[0] + windowMs - now) / 1000),
+      retryAfter: retryAfterSeconds,
+      currentCount: recentRequests.length,
     };
   }
 
-  recentRequests.push(now);
-  rateLimitMap.set(identifier, recentRequests);
+  // 4. Action: ONLY Record current request if NOT in Read-Only mode
+  if (!isReadOnly) {
+    recentRequests.push(now);
+    rateLimitMap.set(identifier, recentRequests);
+  }
 
-  return { allowed: true };
+  return {
+    allowed: true,
+    currentCount: recentRequests.length,
+  };
 }

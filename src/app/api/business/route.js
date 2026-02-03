@@ -2,26 +2,13 @@ import { connect } from "@/dbConnection/dbConfig";
 import Business from "@/models/businessModel";
 import { NextResponse } from "next/server";
 import { v4 as uuidv4 } from "uuid";
-import { withAPIHandler, rateLimit } from "@/middleware/apiMiddleware";
+import { withAPIHandler } from "@/middleware/apiMiddleware";
 
 async function postHandler(request, authContext, monitor) {
   await connect();
 
   const reqBody = await request.json();
   const { businessName, gstNo } = reqBody;
-
-  // Rate limiting
-  const rateLimitCheck = rateLimit(authContext.userId, 10, 60000);
-  if (!rateLimitCheck.allowed) {
-    monitor.log("warn", "Rate limit exceeded", { userId: authContext.userId });
-    return NextResponse.json(
-      { error: "Too many requests. Please try again later." },
-      {
-        status: 429,
-        headers: { "Retry-After": rateLimitCheck.retryAfter.toString() },
-      },
-    );
-  }
 
   // Input validation
   if (!businessName?.trim() || !gstNo?.trim()) {

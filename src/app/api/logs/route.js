@@ -1,12 +1,25 @@
 import { connect } from "@/dbConnection/dbConfig";
 import Log from "@/models/logModel";
 import { NextResponse } from "next/server";
-import { withAPIHandler } from "@/middleware/apiMiddleware";
+import { withAPIHandler, rateLimit } from "@/middleware/apiMiddleware";
 
 async function getHandler(request, authContext, monitor) {
   await connect();
-
   const { searchParams } = new URL(request.url);
+  // 1. Identify the bucket you want to monitor
+  // This must match exactly how identifier is built in withAPIHandler: `${endpoint}:${userId}`
+  const businessEndpoint = "/api/business";
+  const businessIdentifier = `${businessEndpoint}:${authContext.userId}`;
+
+  // 2. Check the current state of that bucket
+  // We call rateLimit with the existing settings to get the 'currentCount'
+  const businessLimit = parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || "50"); // Ensure fallback is 50
+  const businessLimitStatus = rateLimit(
+    businessIdentifier,
+    businessLimit, // Use the variable here
+    900000,
+    true,
+  );
 
   // Query parameters for filtering
   const page = parseInt(searchParams.get("page") || "1");
@@ -72,6 +85,12 @@ async function getHandler(request, authContext, monitor) {
       limit,
     },
     statistics,
+    businessRateLimit: {
+      // Use the 'businessLimit' variable you calculated at the top of the function
+      remaining: Math.max(0, businessLimit - businessLimitStatus.currentCount),
+      limit: businessLimit,
+      currentCount: businessLimitStatus.currentCount,
+    },
   });
 }
 
@@ -104,6 +123,7 @@ export const GET = withAPIHandler(getHandler, {
   requireAuth: true,
   endpoint: "/api/logs",
   allowedMethods: ["GET"],
+  rateLimitConfig: { limit: 100, windowMs: 60000 }, // 100 requests per minute for logs
 });
 
 export const DELETE = withAPIHandler(deleteHandler, {
