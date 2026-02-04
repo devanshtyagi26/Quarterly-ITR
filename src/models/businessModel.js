@@ -29,6 +29,8 @@ const businessSchema = new mongoose.Schema(
   },
 );
 
+businessSchema.index({ businessName: 1, createdBy: 1 });
+
 const Business =
   mongoose.models.businesses || mongoose.model("businesses", businessSchema);
 

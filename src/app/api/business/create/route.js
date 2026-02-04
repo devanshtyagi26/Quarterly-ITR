@@ -107,6 +107,7 @@ async function postHandler(request, authContext, monitor) {
     totalBill: totalBillValue,
     year: parseInt(year),
     quarter: parseInt(quarter),
+    createdBy: authContext.userId,
   });
 
   const savedParticular = await newParticular.save();

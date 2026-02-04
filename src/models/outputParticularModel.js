@@ -1,7 +1,6 @@
 import mongoose from "mongoose";
 import { v4 as uuidv4 } from "uuid";
 
-
 const outputParticularSchema = new mongoose.Schema(
   {
     uuid: {
@@ -53,6 +52,11 @@ const outputParticularSchema = new mongoose.Schema(
       type: Number,
       required: [true, "Please provide a quarter"],
     },
+    createdBy: {
+      type: String,
+      required: true,
+      index: true,
+    },
   },
   {
     timestamps: true, // Optional: adds createdAt and updatedAt fields
@@ -60,7 +64,7 @@ const outputParticularSchema = new mongoose.Schema(
 );
 
 // This makes searching for "Quarter 2 of 2024" nearly instant
-outputParticularSchema.index({ year: 1, quarter: 1, invoiceDate: -1 });
+outputParticularSchema.index({ year: 1, quarter: 1, invoiceDate: -1, createdBy: 1 });
 
 const OutputParticular =
   mongoose.models.outputParticulars ||
