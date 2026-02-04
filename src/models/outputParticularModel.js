@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 import { v4 as uuidv4 } from "uuid";
 
+
 const outputParticularSchema = new mongoose.Schema(
   {
     uuid: {
@@ -8,7 +9,6 @@ const outputParticularSchema = new mongoose.Schema(
       default: uuidv4,
       unique: true,
     },
-
     businessName: {
       type: String,
       required: [true, "Please provide a business name"],
@@ -50,7 +50,7 @@ const outputParticularSchema = new mongoose.Schema(
       required: [true, "Please provide a year"],
     },
     quarter: {
-      type: String,
+      type: Number,
       required: [true, "Please provide a quarter"],
     },
   },

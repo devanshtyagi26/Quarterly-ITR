@@ -28,6 +28,7 @@ async function postHandler(request, authContext, monitor) {
 
   const existingBusiness = await Business.findOne({
     $or: [{ businessName }, { gstNo }],
+    createdBy: authContext.userId,
   });
 
   if (existingBusiness) {
@@ -65,7 +66,7 @@ async function postHandler(request, authContext, monitor) {
 async function getHandler(request, authContext, monitor) {
   await connect();
 
-  const businesses = await Business.find({});
+  const businesses = await Business.find({ createdBy: authContext.userId });
 
   monitor.log("info", "Businesses fetched", {
     count: businesses.length,
