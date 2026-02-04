@@ -55,7 +55,7 @@ const LoginPage = () => {
 
   return (
     <Card
-      className="w-full max-w-sm border border-border shadow-sm rounded-xl"
+      className="w-full max-w-sm border border-border shadow-sm rounded-xl h-full"
       aria-busy={loading}
     >
       <CardHeader className="text-center space-y-1">

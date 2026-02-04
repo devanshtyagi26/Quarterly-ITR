@@ -45,7 +45,7 @@ export default function RootLayout({ children }) {
           />
           <link rel="manifest" href="/site.webmanifest" />
         </Head>
-        <body className="flex flex-col items-center h-fit gap-6">
+        <body className="flex flex-col items-center h-[100vh] justify-center gap-6">
           <React.StrictMode>
             <ThemeProvider
               attribute="class"

@@ -100,6 +100,9 @@ export default function ProfilePage() {
         <Separator className="my-2" />
 
         <CardFooter className="flex flex-col space-y-2">
+          <Button asChild variant="outline" className="w-full">
+            <Link href="/generate">Generate</Link>
+          </Button>
           <Button onClick={logout} className="w-full">
             Logout
           </Button>
