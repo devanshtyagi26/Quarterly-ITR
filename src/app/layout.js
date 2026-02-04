@@ -45,7 +45,7 @@ export default function RootLayout({ children }) {
           />
           <link rel="manifest" href="/site.webmanifest" />
         </Head>
-        <body className="flex flex-col items-center h-[100vh] justify-center gap-6">
+        <body className="min-h-screen bg-background">
           <React.StrictMode>
             <ThemeProvider
               attribute="class"
@@ -54,10 +54,8 @@ export default function RootLayout({ children }) {
               disableTransitionOnChange
             >
               <Navbar />
-              <div className="w-full h-full flex relative top-[-5rem] items-center justify-center">
-                {children}
-                <Toaster richColors position="top-center" />
-              </div>
+              <main className="w-full">{children}</main>
+              <Toaster richColors position="top-center" />
             </ThemeProvider>
           </React.StrictMode>
         </body>

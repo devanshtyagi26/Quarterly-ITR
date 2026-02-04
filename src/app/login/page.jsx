@@ -54,99 +54,101 @@ const LoginPage = () => {
   };
 
   return (
-    <Card
-      className="w-full max-w-sm border border-border shadow-sm rounded-xl h-full"
-      aria-busy={loading}
-    >
-      <CardHeader className="text-center space-y-1">
-        <CardTitle className="text-xl font-semibold text-foreground">
-          Sign In
-        </CardTitle>
-        <p className="text-sm text-muted-foreground">
-          Enter your credentials to continue
-        </p>
-      </CardHeader>
-      <Separator className="my-2" />
-
-      <CardContent>
-        {error && (
-          <p
-            className="text-red-500 text-sm mb-2"
-            role="alert"
-            aria-live="assertive"
-          >
-            {error}
+    <div className="page-container">
+      <Card
+        className="w-full max-w-sm border border-border shadow-sm rounded-xl"
+        aria-busy={loading}
+      >
+        <CardHeader className="text-center space-y-1">
+          <CardTitle className="text-xl font-semibold text-foreground">
+            Sign In
+          </CardTitle>
+          <p className="text-sm text-muted-foreground">
+            Enter your credentials to continue
           </p>
-        )}
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            onLogin();
-          }}
-          className="space-y-4"
-          noValidate
-        >
-          <div className="space-y-1">
-            <Label htmlFor="email">Email</Label>
-            <Input
-              id="email"
-              name="email"
-              type="email"
-              placeholder="you@example.com"
-              value={email}
-              onChange={handleInputChange}
-              disabled={loading}
-              required
-              autoComplete="email"
-            />
-          </div>
+        </CardHeader>
+        <Separator className="my-2" />
 
-          <div className="space-y-1">
-            <Label htmlFor="password">Password</Label>
-            <div className="relative">
+        <CardContent>
+          {error && (
+            <p
+              className="text-red-500 text-sm mb-2"
+              role="alert"
+              aria-live="assertive"
+            >
+              {error}
+            </p>
+          )}
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              onLogin();
+            }}
+            className="space-y-4"
+            noValidate
+          >
+            <div className="space-y-1">
+              <Label htmlFor="email">Email</Label>
               <Input
-                id="password"
-                name="password"
-                type={showPassword ? "text" : "password"}
-                placeholder="••••••••"
-                value={password}
+                id="email"
+                name="email"
+                type="email"
+                placeholder="you@example.com"
+                value={email}
                 onChange={handleInputChange}
                 disabled={loading}
                 required
-                autoComplete="current-password"
-                className="pr-10"
+                autoComplete="email"
               />
-              <button
-                type="button"
-                onClick={() => setShowPassword((prev) => !prev)}
-                className="absolute inset-y-0 right-2 flex items-center text-muted-foreground hover:text-foreground"
-                tabIndex={-1}
-              >
-                {showPassword ? <Eye size={18} /> : <EyeOff size={18} />}
-              </button>
             </div>
-          </div>
 
-          <Button
-            type="submit"
-            disabled={buttonDisabled || loading}
-            className="w-full"
+            <div className="space-y-1">
+              <Label htmlFor="password">Password</Label>
+              <div className="relative">
+                <Input
+                  id="password"
+                  name="password"
+                  type={showPassword ? "text" : "password"}
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={handleInputChange}
+                  disabled={loading}
+                  required
+                  autoComplete="current-password"
+                  className="pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((prev) => !prev)}
+                  className="absolute inset-y-0 right-2 flex items-center text-muted-foreground hover:text-foreground"
+                  tabIndex={-1}
+                >
+                  {showPassword ? <Eye size={18} /> : <EyeOff size={18} />}
+                </button>
+              </div>
+            </div>
+
+            <Button
+              type="submit"
+              disabled={buttonDisabled || loading}
+              className="w-full"
+            >
+              {loading ? "Logging in..." : "Login"}
+            </Button>
+          </form>
+        </CardContent>
+
+        <CardFooter className="flex justify-center text-sm">
+          <span className="text-muted-foreground mr-1">New here?</span>
+          <Link
+            href="/signup"
+            className="text-primary hover:underline transition-colors"
           >
-            {loading ? "Logging in..." : "Login"}
-          </Button>
-        </form>
-      </CardContent>
-
-      <CardFooter className="flex justify-center text-sm">
-        <span className="text-muted-foreground mr-1">New here?</span>
-        <Link
-          href="/signup"
-          className="text-primary hover:underline transition-colors"
-        >
-          Create an account
-        </Link>
-      </CardFooter>
-    </Card>
+            Create an account
+          </Link>
+        </CardFooter>
+      </Card>
+    </div>
   );
 };
 

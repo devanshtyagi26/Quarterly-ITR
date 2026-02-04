@@ -439,12 +439,13 @@ function AddMoney({ business }) {
           </div>
 
           {/* Row 4: Bill Value */}
-          <div className="grid grid-cols-2 gap-4 ml-[50%]">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="col-span-1"></div>
             <Controller
               name="billValue"
               control={form.control}
               render={({ field }) => (
-                <Field>
+                <Field className="col-span-1">
                   <FieldLabel htmlFor="billValue">Bill Value</FieldLabel>
                   <Input
                     value={field.value || ""}

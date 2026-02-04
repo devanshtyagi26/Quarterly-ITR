@@ -58,107 +58,109 @@ function SignUpPage() {
   }, [user]);
 
   return (
-    <Card
-      className="w-full max-w-sm border border-border shadow-sm rounded-xl"
-      aria-busy={loading}
-    >
-      <CardHeader className="text-center space-y-1">
-        <CardTitle className="text-xl font-semibold text-foreground">
-          {loading ? "Creating your account..." : "Create an Account"}
-        </CardTitle>
-        <p className="text-sm text-muted-foreground">
-          Fill in the details below to get started
-        </p>
-      </CardHeader>
-      <Separator className="my-2" />
-      <CardContent>
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            onSignup();
-          }}
-          className="space-y-4"
-          noValidate
-        >
-          <div className="space-y-1">
-            <Label htmlFor="userName">Username</Label>
-            <Input
-              id="userName"
-              name="userName"
-              type="text"
-              placeholder="johnDoe"
-              value={user.userName}
-              onChange={(e) => {
-                setUser({ ...user, userName: e.target.value });
-              }}
-              disabled={loading}
-            />
-          </div>
-          <div className="space-y-1">
-            <Label htmlFor="email">Email Address</Label>
-            <Input
-              id="email"
-              name="email"
-              type="email"
-              placeholder="you@example.com"
-              value={user.email}
-              onChange={(e) => {
-                setUser({ ...user, email: e.target.value });
-              }}
-              disabled={loading}
-              required
-              autoComplete="email"
-            />
-          </div>
-          <div className="space-y-1">
-            <Label htmlFor="password">Password</Label>
-            <div className="relative">
+    <div className="page-container">
+      <Card
+        className="w-full max-w-sm border border-border shadow-sm rounded-xl"
+        aria-busy={loading}
+      >
+        <CardHeader className="text-center space-y-1">
+          <CardTitle className="text-xl font-semibold text-foreground">
+            {loading ? "Creating your account..." : "Create an Account"}
+          </CardTitle>
+          <p className="text-sm text-muted-foreground">
+            Fill in the details below to get started
+          </p>
+        </CardHeader>
+        <Separator className="my-2" />
+        <CardContent>
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              onSignup();
+            }}
+            className="space-y-4"
+            noValidate
+          >
+            <div className="space-y-1">
+              <Label htmlFor="userName">Username</Label>
               <Input
-                id="password"
-                name="password"
-                type={showPassword ? "text" : "password"}
-                placeholder="••••••••"
-                value={user.password}
+                id="userName"
+                name="userName"
+                type="text"
+                placeholder="johnDoe"
+                value={user.userName}
                 onChange={(e) => {
-                  setUser({ ...user, password: e.target.value });
+                  setUser({ ...user, userName: e.target.value });
+                }}
+                disabled={loading}
+              />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="email">Email Address</Label>
+              <Input
+                id="email"
+                name="email"
+                type="email"
+                placeholder="you@example.com"
+                value={user.email}
+                onChange={(e) => {
+                  setUser({ ...user, email: e.target.value });
                 }}
                 disabled={loading}
                 required
-                autoComplete="new-password"
-                className="pr-10"
+                autoComplete="email"
               />
-              <button
-                type="button"
-                onClick={() => setShowPassword((prev) => !prev)}
-                className="absolute inset-y-0 right-2 flex items-center text-muted-foreground hover:text-foreground"
-                tabIndex={-1}
-              >
-                {showPassword ? <Eye size={18} /> : <EyeOff size={18} />}
-              </button>
             </div>
-          </div>
+            <div className="space-y-1">
+              <Label htmlFor="password">Password</Label>
+              <div className="relative">
+                <Input
+                  id="password"
+                  name="password"
+                  type={showPassword ? "text" : "password"}
+                  placeholder="••••••••"
+                  value={user.password}
+                  onChange={(e) => {
+                    setUser({ ...user, password: e.target.value });
+                  }}
+                  disabled={loading}
+                  required
+                  autoComplete="new-password"
+                  className="pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((prev) => !prev)}
+                  className="absolute inset-y-0 right-2 flex items-center text-muted-foreground hover:text-foreground"
+                  tabIndex={-1}
+                >
+                  {showPassword ? <Eye size={18} /> : <EyeOff size={18} />}
+                </button>
+              </div>
+            </div>
 
-          <Button
-            type="submit"
-            disabled={buttonDisabled || loading}
-            className="w-full"
+            <Button
+              type="submit"
+              disabled={buttonDisabled || loading}
+              className="w-full"
+            >
+              {loading ? "Signing up..." : "Sign Up"}
+            </Button>
+          </form>
+        </CardContent>
+        <CardFooter className="flex justify-center text-sm">
+          <span className="text-muted-foreground mr-1">
+            Already have an account?
+          </span>
+          <Link
+            href="/login"
+            className="text-primary hover:underline transition-colors"
           >
-            {loading ? "Signing up..." : "Sign Up"}
-          </Button>
-        </form>
-      </CardContent>
-      <CardFooter className="flex justify-center text-sm">
-        <span className="text-muted-foreground mr-1">
-          Already have an account?
-        </span>
-        <Link
-          href="/login"
-          className="text-primary hover:underline transition-colors"
-        >
-          Log In
-        </Link>
-      </CardFooter>
-    </Card>
+            Log In
+          </Link>
+        </CardFooter>
+      </Card>
+    </div>
   );
 }
 

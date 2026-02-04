@@ -9,10 +9,12 @@ import {
   InputGroupTextarea,
 } from "@/components/ui/input-group";
 import { Button } from "@/components/ui/button";
+import { ArrowLeft } from "lucide-react";
 import AddMoney from "./addMoney";
 import { CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
+import { Separator } from "@/components/ui/separator";
 
 function BusinessForm() {
   const [businesses, setBusinesses] = useState([]); // Your fetched business data
@@ -214,9 +216,27 @@ function BusinessForm() {
           ? selectedBusiness.businessName + " - " + selectedBusiness.gstNo
           : "Select Business"}
       </CardTitle>
-      <div className="grid w-full max-w-sm gap-4">
+      <Separator className="my-2" />
+      <div className="grid w-full max-w-sm gap-4 mx-auto relative">
         {addMoneyToggle ? (
-          <AddMoney business={selectedBusiness} />
+          <>
+            <AddMoney business={selectedBusiness} />
+            <Button
+              type="button"
+              onClick={() => {
+                setAddMoneyToggle(false);
+                setSelectedBusiness(null);
+                setBusinessName("");
+                setGstNo("");
+              }}
+              variant="ghost"
+              size="sm"
+              className="absolute left-[-30%] top-[-13%] gap-2 text-amber-600 hover:text-amber-700 hover:bg-amber-50 dark:text-yellow-500 dark:hover:text-yellow-400 dark:hover:bg-yellow-950/30 transition-all"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              Back
+            </Button>
+          </>
         ) : (
           <>
             {loading ? (

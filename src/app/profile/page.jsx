@@ -63,51 +63,38 @@ export default function ProfilePage() {
   // getBusinessList();
 
   return (
-    <>
-      <Card className="w-full max-w-md mx-auto mt-20 shadow-md border-border rounded-xl">
-        {chooseBusiness && (
-          <>
+    <div className="page-container-top relative">
+      <div className="w-[45%] max-w-5xl mx-auto">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Main Business Card - Takes 2 columns on large screens */}
+          <Card className="lg:col-span-2 shadow-md border-border rounded-xl">
+            {chooseBusiness && (
+              <>
+                <CardHeader>
+                  <BusinessForm />
+                </CardHeader>
+              </>
+            )}
+          </Card>
+
+          {/* Actions Card - Takes 1 column on large screens */}
+          <Card className="shadow-md border-border rounded-xl h-fit">
             <CardHeader>
-              <BusinessForm />
+              <CardTitle className="text-lg">Quick Actions</CardTitle>
             </CardHeader>
-
-            <Separator className="my-2" />
-
-            <CardFooter className="flex flex-col space-y-2">
+            <Separator />
+            <CardContent className="pt-6 space-y-3">
               <AddNewBusiness />
-            </CardFooter>
-          </>
-        )}
-        {addMoney && (
-          <>
-            <CardHeader>
-              <CardTitle className="text-center text-2xl">
-                Add Money to Wallet
-              </CardTitle>
-            </CardHeader>
-            <Separator className="my-2" />
-            <CardContent>
-              <p className="text-center">Add Money Feature Coming Soon!</p>
+              <Button asChild variant="outline" className="w-full">
+                <Link href="/generate">Generate Report</Link>
+              </Button>
+              <Button onClick={logout} className="w-full" variant="destructive">
+                Logout
+              </Button>
             </CardContent>
-          </>
-        )}
-      </Card>
-      <Card className="w-full max-w-md mx-auto mt-10 shadow-md border-border rounded-xl">
-        <CardHeader>
-          <CardTitle className="text-center text-2xl">Your Profile</CardTitle>
-        </CardHeader>
-
-        <Separator className="my-2" />
-
-        <CardFooter className="flex flex-col space-y-2">
-          <Button asChild variant="outline" className="w-full">
-            <Link href="/generate">Generate</Link>
-          </Button>
-          <Button onClick={logout} className="w-full">
-            Logout
-          </Button>
-        </CardFooter>
-      </Card>
-    </>
+          </Card>
+        </div>
+      </div>
+    </div>
   );
 }
