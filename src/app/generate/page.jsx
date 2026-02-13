@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef, useMemo } from "react";
+import React, { useState, useMemo } from "react";
 import axios from "axios";
 import {
   Card,
@@ -9,54 +9,82 @@ import {
   CardTitle,
   CardDescription,
 } from "@/components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Download, FileText, Calendar, Filter } from "lucide-react";
+import { Download, FileText, Filter, RotateCcw } from "lucide-react";
+import { useForm, Controller } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { fullSchema } from "@/lib/schema/generateFileValidation";
+import { Loader2 } from "lucide-react";
 
 const QUARTERS = [
-  { label: "Q1: Jan - Mar", value: 1 },
-  { label: "Q2: Apr - Jun", value: 2 },
-  { label: "Q3: Jul - Sep", value: 3 },
-  { label: "Q4: Oct - Dec", value: 4 },
+  { label: "Q1: Jan - Mar", value: "1" },
+  { label: "Q2: Apr - Jun", value: "2" },
+  { label: "Q3: Jul - Sep", value: "3" },
+  { label: "Q4: Oct - Dec", value: "4" },
 ];
-
-const handleExport = async () => {
-  const response = await fetch("/api/export", {
-    method: "POST",
-    body: JSON.stringify({
-      /* your data */
-    }),
-  });
-
-  if (response.ok) {
-    // Convert response to a blob
-    const blob = await response.blob();
-    // Create a temporary link and click it to trigger the OS "Save As"
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "MyReport.docx";
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    console.log("Report exported successfully");
-  } else {
-    console.error("Failed to export report:", response.statusText);
-  }
-};
 
 function Generate() {
   const [report, setReport] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [year, setYear] = useState("");
-  const [selectedQuarter, setSelectedQuarter] = useState(null);
-  const [showQuarterDropdown, setShowQuarterDropdown] = useState(false);
-  const dropdownRef = useRef(null);
+  const [generatedParams, setGeneratedParams] = useState(null);
+  const [exporting, setExporting] = useState(false);
 
-  // Memoized Calculations for performance
+  const form = useForm({
+    resolver: zodResolver(fullSchema),
+    defaultValues: {
+      year: "",
+      quarter: "",
+    },
+  });
+
+  const {
+    handleSubmit,
+    control,
+    reset,
+    formState: { errors },
+  } = form;
+
+  const isFormLocked = !!generatedParams;
+
+  const handleExport = async () => {
+    setExporting(true);
+    const response = await fetch("/api/export", {
+      method: "POST",
+      body: JSON.stringify({
+        /* your data */
+      }),
+    });
+
+    if (response.ok) {
+      // Convert response to a blob
+      const blob = await response.blob();
+      // Create a temporary link and click it to trigger the OS "Save As"
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "MyReport.docx";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      console.log("Report exported successfully");
+    } else {
+      console.error("Failed to export report:", response.statusText);
+    }
+    setExporting(false);
+  };
+
+  // Memoized Calculations
   const totals = useMemo(() => {
     if (!report) return { bill: 0, taxable: 0, cgst: 0, sgst: 0 };
     return report.reduce(
@@ -70,29 +98,30 @@ function Generate() {
     );
   }, [report]);
 
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-        setShowQuarterDropdown(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
-  const handleGenerate = async () => {
-    if (!year || !selectedQuarter) return;
+  const onSubmit = async (data) => {
     setLoading(true);
     try {
       const response = await axios.get(
-        `/api/generate?year=${year}&quarter=${selectedQuarter.value}`,
+        `/api/generate?year=${data.year}&quarter=${data.quarter}`,
       );
       setReport(response.data.generatedQuarterReport || []);
+      setGeneratedParams({
+        year: data.year,
+        quarter: data.quarter,
+        quarterLabel: QUARTERS.find((q) => q.value === String(data.quarter))
+          ?.label,
+      });
     } catch (error) {
       console.error("Error fetching report:", error);
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleClearReport = () => {
+    setReport(null);
+    setGeneratedParams(null);
+    reset({ year: "", quarter: "" }); // Ensures the form visuals reset
   };
 
   return (
@@ -114,57 +143,93 @@ function Generate() {
             </CardHeader>
             <Separator />
             <CardContent className="pt-6 space-y-5">
-              <div className="space-y-2">
-                <Label className="text-xs uppercase tracking-wider font-semibold text-slate-500">
-                  Financial Year
-                </Label>
-                <Input
-                  type="number"
-                  value={year}
-                  placeholder="2024"
-                  onChange={(e) => setYear(e.target.value)}
-                  className="bg-slate-50 dark:bg-slate-900"
-                />
-              </div>
+              <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+                {/* Year Input */}
+                <div className="space-y-2">
+                  <Label className="text-xs uppercase tracking-wider font-semibold text-slate-500">
+                    Financial Year
+                  </Label>
+                  <Controller
+                    name="year"
+                    control={control}
+                    render={({ field }) => (
+                      <Input
+                        {...field}
+                        type="number"
+                        placeholder="e.g. 2024"
+                        disabled={isFormLocked}
+                        className={`bg-white dark:bg-slate-900 ${errors.year ? "border-destructive" : ""}`}
+                        onChange={(e) =>
+                          field.onChange(
+                            e.target.value ? parseInt(e.target.value, 10) : "",
+                          )
+                        }
+                      />
+                    )}
+                  />
+                  {errors.year && (
+                    <p className="text-destructive text-xs mt-1">
+                      {errors.year.message}
+                    </p>
+                  )}
+                </div>
 
-              <div className="space-y-2 relative" ref={dropdownRef}>
-                <Label className="text-xs uppercase tracking-wider font-semibold text-slate-500">
-                  Period
-                </Label>
-                <Button
-                  variant="outline"
-                  className="w-full justify-between font-normal bg-slate-50 dark:bg-slate-900"
-                  onClick={() => setShowQuarterDropdown(!showQuarterDropdown)}
-                >
-                  {selectedQuarter ? selectedQuarter.label : "Select Quarter"}
-                  <Calendar className="ml-2 h-4 w-4 opacity-50" />
-                </Button>
-
-                {showQuarterDropdown && (
-                  <div className="absolute z-50 mt-2 w-full rounded-xl border bg-white dark:bg-slate-900 shadow-xl overflow-hidden animate-in fade-in zoom-in-95 duration-100">
-                    {QUARTERS.map((q) => (
-                      <div
-                        key={q.value}
-                        className="px-4 py-3 text-sm hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer transition-colors"
-                        onClick={() => {
-                          setSelectedQuarter(q);
-                          setShowQuarterDropdown(false);
-                        }}
+                {/* Quarter Select */}
+                <div className="space-y-2">
+                  <Label className="text-xs uppercase tracking-wider font-semibold text-slate-500">
+                    Period
+                  </Label>
+                  <Controller
+                    name="quarter"
+                    control={control}
+                    render={({ field }) => (
+                      <Select
+                        onValueChange={field.onChange}
+                        value={String(field.value)}
+                        disabled={isFormLocked}
                       >
-                        {q.label}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
+                        <SelectTrigger
+                          className={`bg-white w-[100%] dark:bg-slate-900 ${errors.quarter ? "border-destructive" : ""}`}
+                        >
+                          <SelectValue placeholder="Select Quarter" />
+                        </SelectTrigger>
+                        <SelectContent className="bg-white dark:bg-slate-900">
+                          {QUARTERS.map((q) => (
+                            <SelectItem key={q.value} value={q.value}>
+                              {q.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+                  />
+                  {errors.quarter && (
+                    <p className="text-destructive text-xs mt-1">
+                      {errors.quarter.message}
+                    </p>
+                  )}
+                </div>
 
-              <Button
-                onClick={handleGenerate}
-                disabled={loading || !selectedQuarter}
-                className="w-full shadow-md bg-blue-600 hover:bg-blue-700 transition-all active:scale-95"
-              >
-                {loading ? "Processing..." : "Generate Analysis"}
-              </Button>
+                {/* Action Button */}
+                {isFormLocked ? (
+                  <Button
+                    type="button"
+                    onClick={handleClearReport}
+                    variant="outline"
+                    className="w-full border-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 gap-2 shadow-sm"
+                  >
+                    <RotateCcw className="w-4 h-4" /> Clear Report
+                  </Button>
+                ) : (
+                  <Button
+                    type="submit"
+                    disabled={loading}
+                    className="w-full bg-blue-600 hover:bg-blue-700 text-white shadow-md transition-all active:scale-[0.98]"
+                  >
+                    {loading ? "Processing..." : "Generate Analysis"}
+                  </Button>
+                )}
+              </form>
             </CardContent>
           </Card>
         </div>
@@ -208,15 +273,15 @@ function Generate() {
           </div>
 
           <Card className="flex-1 min-h-0 border-none shadow-lg ring-1 ring-slate-200 dark:ring-slate-800 flex flex-col">
-            <CardHeader className="flex flex-row items-center justify-between pb-2 shrink-0">
+            <CardHeader className="flex flex-row items-center justify-between pb-4 shrink-0 ">
               <div className="space-y-1">
                 <CardTitle className="text-lg flex items-center gap-2">
-                  <FileText className="w-5 h-5 text-slate-400" />
+                  <FileText className="w-5 h-5 text-blue-500" />
                   Detailed Invoice Ledger
                 </CardTitle>
                 <CardDescription>
                   {report
-                    ? `Showing ${report.length} entries for ${selectedQuarter?.label} ${year}`
+                    ? `Showing ${report.length} entries for ${generatedParams?.quarterLabel} ${generatedParams?.year}`
                     : "No data generated"}
                 </CardDescription>
               </div>
@@ -224,10 +289,16 @@ function Generate() {
                 <Button
                   variant="outline"
                   size="sm"
-                  className="gap-2"
+                  className="gap-2 border-blue-200 hover:bg-blue-50 dark:hover:bg-blue-900/20 text-blue-600 dark:text-blue-400"
                   onClick={handleExport}
+                  disabled={exporting}
                 >
-                  <Download className="w-4 h-4" /> Export
+                  {exporting ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Download className="w-4 h-4" />
+                  )}{" "}
+                  Export Word
                 </Button>
               )}
             </CardHeader>
@@ -298,8 +369,9 @@ function Generate() {
                             colSpan="7"
                             className="px-4 py-12 text-center text-slate-400 italic"
                           >
-                            Start by selecting a period and generating the
-                            report.
+                            {isFormLocked
+                              ? "No data found for the selected period."
+                              : "Start by selecting a period and generating the report."}
                           </td>
                         </tr>
                       )}
