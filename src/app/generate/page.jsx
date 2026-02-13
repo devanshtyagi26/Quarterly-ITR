@@ -23,6 +23,31 @@ const QUARTERS = [
   { label: "Q4: Oct - Dec", value: 4 },
 ];
 
+const handleExport = async () => {
+  const response = await fetch("/api/export", {
+    method: "POST",
+    body: JSON.stringify({
+      /* your data */
+    }),
+  });
+
+  if (response.ok) {
+    // Convert response to a blob
+    const blob = await response.blob();
+    // Create a temporary link and click it to trigger the OS "Save As"
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "MyReport.docx";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    console.log("Report exported successfully");
+  } else {
+    console.error("Failed to export report:", response.statusText);
+  }
+};
+
 function Generate() {
   const [report, setReport] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -196,7 +221,12 @@ function Generate() {
                 </CardDescription>
               </div>
               {report?.length > 0 && (
-                <Button variant="outline" size="sm" className="gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-2"
+                  onClick={handleExport}
+                >
                   <Download className="w-4 h-4" /> Export
                 </Button>
               )}
