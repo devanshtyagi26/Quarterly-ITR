@@ -46,8 +46,7 @@ export const sendEmail = async ({ email, emailType, userId }) => {
       </p>`, // HTML body
     };
 
-    const mailResponse = await transporter.sendMail(mailOptions);
-    return mailResponse;
+    return await transporter.sendMail(mailOptions);
   } catch (error) {
     throw new Error(error.message);
   }

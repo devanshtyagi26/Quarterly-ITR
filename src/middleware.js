@@ -29,6 +29,8 @@ export const config = {
     "/profile",
     "/verifyemail",
     "/business/:path*",
+    "/generate/:path*",
+    "/logs",
     // Explicitly include API routes in matcher but handle them separately
     "/api/:path*",
   ],
